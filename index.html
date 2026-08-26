@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home Fix Solution Leads Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d1220; --panel:#161d2e; --panel2:#1c2540; --border:#2a3350;
+    --blue:#4f8cff; --blue-dark:#8fb8ff; --orange:#f5941f; --green:#22c55e; --red:#ef4444;
+    --text:#e7ecf7; --muted:#8a93ab; --radius:14px;
+    --shadow:0 4px 16px rgba(0,0,0,0.4);
+    --header-grad:linear-gradient(135deg, #14213d 0%, #1c2540 60%, #14213d 100%);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Inter','Segoe UI',Arial,sans-serif; background:var(--bg); color:var(--text);
+    padding:24px; line-height:1.4;
+  }
+  .header-bar{background:var(--header-grad); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px; margin-bottom:14px; box-shadow:var(--shadow);}
+  .header{display:flex; align-items:center; gap:16px; margin-bottom:4px;}
+  .header img{height:64px; width:auto;}
+  .header h1{font-size:23px; margin:0; color:#fff; font-weight:800; letter-spacing:0.2px;}
+  .sub{color:var(--muted); font-size:13px; margin-bottom:8px; margin-left:80px;}
+  .sync-badge{
+    display:inline-block; font-size:12px; padding:4px 10px; border-radius:20px; background:var(--panel2);
+    border:1px solid var(--border); margin-bottom:10px; color:var(--muted);
+  }
+  .top-bar{display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin-bottom:8px;}
+  .top-bar > div{display:flex; flex-direction:column;}
+  .top-bar label{font-size:12px; color:var(--muted); margin-bottom:4px;}
+  select, input, button, textarea{
+    font-family:inherit; font-size:14px; border-radius:8px; border:1px solid var(--border);
+    background:var(--panel2); color:var(--text); padding:9px 11px;
+  }
+  button{cursor:pointer; border:none; font-weight:600; transition:.15s; box-shadow:0 2px 6px rgba(0,0,0,0.25);}
+  button:hover{filter:brightness(1.15); transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,0.35);}
+  button:disabled{opacity:.45; cursor:not-allowed; transform:none; box-shadow:none;}
+  .btn-blue{background:var(--blue); color:#fff;}
+  .btn-orange{background:var(--orange); color:#fff;}
+  .btn-green{background:var(--green); color:#04240f;}
+  .btn-danger{background:var(--red); color:#fff;}
+  .btn-ghost{background:var(--panel2); border:1px solid var(--border); color:var(--text);}
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:18px; margin-bottom:20px; box-shadow:var(--shadow);}
+  .panel h2{margin:0 0 12px; font-size:13px; color:var(--blue-dark); text-transform:uppercase; letter-spacing:.8px; font-weight:700; padding-left:10px; border-left:3px solid var(--orange);}
+  textarea#pasteBox{width:100%; min-height:110px; resize:vertical;}
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px;}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); border-top:4px solid var(--blue);}
+  .card.orange{border-top-color:var(--orange);}
+  .card.green{border-top-color:var(--green);}
+  .card.red{border-top-color:var(--red);}
+  .card .label{font-size:12px; color:var(--muted); text-transform:uppercase;}
+  .card .value{font-size:22px; font-weight:800; margin-top:6px; color:var(--blue-dark);}
+  .card.orange .value{color:var(--orange);}
+  .card.green .value{color:var(--green);}
+  .card.red .value{color:var(--red);}
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th,td{padding:9px 10px; border-bottom:1px solid var(--border); text-align:left; white-space:nowrap;}
+  th{color:var(--blue-dark); font-weight:700; position:sticky; top:0; background:var(--panel2); font-size:11px; text-transform:uppercase;}
+  tr:hover{background:#212b45;}
+  .table-wrap{overflow-x:auto; max-height:480px; overflow-y:auto; border:1px solid var(--border); border-radius:10px;}
+  select.status{padding:5px 6px; font-size:12px; font-weight:700;}
+  .status-new{color:var(--orange);}
+  .status-booked{color:var(--blue);}
+  .status-completed{color:var(--green);}
+  .status-cancelled{color:var(--red); text-decoration:line-through;}
+  input.jobvalue-input{width:90px;}
+  input.percentage-input{width:70px;}
+  input.techname-input{width:110px;}
+  .earning-cell{font-weight:700; color:var(--blue-dark);}
+  .row-actions button, .row-actions a{padding:4px 8px; font-size:12px; margin-right:4px; display:inline-block; text-decoration:none; border-radius:8px; font-weight:600; cursor:pointer;}
+  .roi-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; align-items:end; margin-bottom:16px;}
+  .roi-grid label{display:block; font-size:12px; color:var(--muted); margin-bottom:4px;}
+  .roi-grid input{width:100%;}
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(20,40,80,.45);
+    align-items:center; justify-content:center; z-index:50;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal{background:var(--panel); border-radius:var(--radius); padding:22px; width:min(560px,92vw); max-height:88vh; overflow-y:auto; box-shadow:0 10px 40px rgba(0,0,0,.25);}
+  .modal h3{margin-top:0; color:var(--blue-dark);}
+  .field-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .field-grid .full{grid-column:1/-1;}
+  .field-grid label{font-size:12px; color:var(--muted); display:block; margin-bottom:4px;}
+  .field-grid input, .field-grid select{width:100%;}
+  .modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:16px;}
+  .toast{
+    position:fixed; bottom:20px; right:20px; background:var(--green); color:#fff;
+    padding:12px 18px; border-radius:8px; font-weight:600; display:none; z-index:60; box-shadow:0 4px 20px rgba(0,0,0,.2);
+  }
+  .empty{color:var(--muted); text-align:center; padding:24px; font-size:13px;}
+  .footer-note{color:var(--muted); font-size:12px; margin-top:6px;}
+  .flex-between{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;}
+  .period-note{font-size:12px; color:var(--muted); margin-top:2px; margin-bottom:8px;}
+  .search-bar{display:flex; gap:10px; align-items:center; margin-bottom:12px;}
+  .search-bar input{flex:1; max-width:280px;}
+  .mini-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:20px;}
+  .mini-card{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:10px 14px; box-shadow:var(--shadow); border-top:3px solid var(--orange);}
+  .mini-card .label{font-size:11px; color:var(--muted); text-transform:uppercase;}
+  .mini-card .value{font-size:18px; font-weight:800; margin-top:4px; color:var(--orange);}
+  body.role-employee .owner-only{display:none !important;}
+  .invoice-box{background:#fff; color:#111; border-radius:8px; padding:20px;}
+  .invoice-box table{width:100%; border-collapse:collapse; margin-top:12px;}
+  .invoice-job-block{border:1px solid #ddd; border-radius:8px; padding:12px 14px; margin-top:10px; background:#fafafa;}
+  .invoice-job-row{display:flex; justify-content:space-between; padding:3px 0; font-size:13px; border-bottom:1px dashed #e2e2e2;}
+  .invoice-job-row:last-child{border-bottom:none;}
+  .invoice-job-label{color:#777; font-weight:600;}
+  .invoice-job-earning{font-weight:800; font-size:15px; color:#0a7a35;}
+  .menu-dropdown{display:none; position:absolute; top:110%; left:0; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:10px; z-index:40; min-width:250px; box-shadow:var(--shadow); flex-direction:column; gap:8px;}
+  .menu-dropdown.open{display:flex;}
+  .menu-dropdown button{width:100%; text-align:left;}
+  .invoice-box th, .invoice-box td{border:1px solid #ccc; padding:6px 8px; font-size:13px; text-align:left;}
+  .invoice-box h2{margin:0 0 4px;}
+  .invoice-total{font-size:18px; font-weight:800; text-align:right; margin-top:12px;}
+  @media print{
+    body *{visibility:hidden;}
+    #invoiceContent, #invoiceContent *{visibility:visible;}
+    #invoiceContent{position:absolute; top:0; left:0; width:100%;}
+    .no-print{display:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div class="modal-overlay active" id="loginOverlay" style="z-index:100;">
+  <div class="modal" style="max-width:360px; text-align:center;">
+    <h3 style="margin-top:0;">🔒 Home Fix Solution</h3>
+    <p style="color:var(--muted); font-size:13px; margin-top:-6px;">Sign in to open the dashboard</p>
+    <div style="text-align:left; margin-top:16px;">
+      <label id="loginUserLabel" style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px;">Username</label>
+      <input id="loginUser" style="width:100%; margin-bottom:12px;" placeholder="Username">
+      <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px;">Password</label>
+      <input id="loginPass" type="password" style="width:100%;" placeholder="Password">
+      <div id="loginError" style="color:var(--red); font-size:12px; margin-top:8px; display:none;">Wrong username or password.</div>
+    </div>
+    <button class="btn-blue" id="loginBtn" style="width:100%; margin-top:16px;">Sign In</button>
+    <div id="loginNote" style="color:var(--muted); font-size:11px; margin-top:14px;">This is a basic screen lock, not bank-level security — anyone with the file's source code could bypass it. Don't use it to protect highly sensitive data.</div>
+  </div>
+</div>
+
+<div class="header-bar">
+  <div class="header">
+    <h1 id="mainTitle">Home Fix Solution — Leads Dashboard</h1>
+  </div>
+  <div class="sync-badge" id="syncStatus">⚪ Checking sync status...</div>
+  <button class="btn-ghost" id="logoutBtn" style="padding:4px 12px; font-size:12px; margin-left:10px; vertical-align:top;">Logout</button>
+</div>
+
+<div class="top-bar">
+  <div>
+    <label>Month</label>
+    <select id="periodSelect"></select>
+  </div>
+  <button class="btn-green" id="myInvoiceBtn" style="display:none;">🧾 My Invoice</button>
+  <div style="position:relative; display:inline-block;">
+    <button class="btn-ghost" id="menuToggleBtn">☰ Menu</button>
+    <div id="menuDropdown" class="menu-dropdown">
+      <button class="btn-blue owner-only" id="newPeriodBtn">+ Add Next Year's Months</button>
+      <button class="btn-ghost" id="manualAddBtn">+ Add Lead Manually</button>
+      <button class="btn-green" id="exportPeriodBtn">⬇ Export This Month (Excel)</button>
+      <button class="btn-orange owner-only" id="exportAllBtn">⬇ Export ALL Months (Excel)</button>
+      <button class="btn-danger owner-only" id="deletePeriodBtn">🗑 Delete This Month</button>
+      <button class="btn-blue owner-only" id="employeesModalBtn">👥 Manage Employees</button>
+      <button class="btn-orange owner-only" id="secureOldDataBtn">🔒 Secure Old Data</button>
+    </div>
+  </div>
+</div>
+<div class="period-note" id="periodNote"></div>
+
+<!-- PASTE & PARSE -->
+<div class="panel">
+  <h2>Paste Lead Email</h2>
+  <textarea id="pasteBox" placeholder="Paste the full lead email/notification text here...
+Example:
+Name: John Smith
+Phone: 555-123-4567
+Email: john@example.com
+City: Dallas
+State: TX
+Zip: 75201
+Address: 123 Main St
+Service: Garage Door Spring Repair
+Category: Repair
+Coupon: SAVE20
+Date: 2026-07-05
+Time: 10:30 AM"></textarea>
+  <div style="margin-top:10px; display:flex; gap:10px;">
+    <button class="btn-blue" id="parseBtn">⚡ Parse & Add Lead</button>
+    <button class="btn-ghost" id="clearPasteBtn">Clear</button>
+  </div>
+  <div class="footer-note">Works best when the email has labeled fields (Name:, City:, Phone: etc). You'll review/edit before saving.</div>
+</div>
+
+<!-- DAILY / WEEKLY / MONTHLY PROFIT -->
+<div class="mini-cards owner-only" id="profitChartCards"></div>
+
+<!-- SUMMARY CARDS -->
+<div class="cards" id="summaryCards"></div>
+
+<!-- LEADS TABLE -->
+<div class="panel">
+  <div class="flex-between">
+    <h2 style="margin-bottom:0;"><span id="leadsHeadingPrefix">Leads</span> — <span id="periodLabel"></span></h2>
+  </div>
+  <div class="search-bar" style="margin-top:10px;">
+    <input type="text" id="searchInput" placeholder="Search by phone number or zip code...">
+    <button class="btn-ghost" id="clearSearchBtn">Clear</button>
+  </div>
+  <div class="table-wrap">
+    <table id="leadsTable">
+      <thead>
+        <tr>
+          <th>#</th><th>Name</th><th>State</th><th>City</th><th>Address</th>
+          <th>Category</th><th>Service</th><th>Coupon</th><th>Email</th>
+          <th>Phone</th><th>Zip</th><th>Date</th><th>Time</th>
+          <th class="owner-only">Tech Name</th><th class="owner-only">Job Value ($)</th><th class="owner-only">My %</th><th class="owner-only">My Earning ($)</th><th id="yourEarningHeader">Your Earning ($)</th>
+          <th class="owner-only">Payment</th><th class="owner-only">Added By</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="leadsBody"></tbody>
+    </table>
+    <div class="empty" id="emptyMsg" style="display:none;">No leads yet for this month. Paste an email above or add manually.</div>
+  </div>
+
+</div>
+
+<!-- ROI SECTION -->
+<div class="panel owner-only">
+  <h2>Investment & ROI</h2>
+  <div class="roi-grid">
+    <div>
+      <label>This Month's Ad/Marketing Investment ($)</label>
+      <input type="number" id="investmentInput" placeholder="e.g. 1500">
+    </div>
+    <div>
+      <label>Other Costs ($) <span style="color:var(--muted)">(optional)</span></label>
+      <input type="number" id="otherCostInput" placeholder="e.g. 100">
+    </div>
+  </div>
+  <div class="cards" id="roiCards"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- EDIT / ADD MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">Review Lead</h3>
+    <div style="background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:14px;">
+      <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px;">Your Name <span style="color:var(--muted)">(who is entering this lead)</span></label>
+      <input id="f_addedby" style="width:100%;" placeholder="Your name">
+    </div>
+    <div class="field-grid">
+      <div><label>Name</label><input id="f_name"></div>
+      <div><label>State</label><input id="f_state"></div>
+      <div><label>City</label><input id="f_city"></div>
+      <div class="full"><label>Address</label><input id="f_address"></div>
+      <div><label>Category</label><input id="f_category"></div>
+      <div><label>Service</label><input id="f_service"></div>
+      <div><label>Coupon</label><input id="f_coupon"></div>
+      <div><label>Email</label><input id="f_email"></div>
+      <div><label>Phone</label><input id="f_phone"></div>
+      <div><label>Zip Code</label><input id="f_zip"></div>
+      <div><label>Date</label><input id="f_date"></div>
+      <div><label>Time</label><input id="f_time"></div>
+      <div><label>Status</label>
+        <select id="f_status">
+          <option value="New">New</option>
+          <option value="Booked">Booked</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="owner-only"><label>Tech Name</label><input id="f_techname"></div>
+      <div class="full owner-only">
+        <label>Tech WhatsApp Number <span style="color:var(--muted)">(type the FULL number WITH country code, no + no spaces)</span></label>
+        <input id="f_techphone" placeholder="e.g. 15551234567 (USA) or 923001234567 (Pakistan)">
+        <div id="waPreview" style="font-size:12px; color:var(--muted); margin-top:4px;"></div>
+      </div>
+      <div class="owner-only"><label>Job Value ($) <span style="color:var(--muted)">(what customer paid)</span></label><input id="f_jobvalue" type="number"></div>
+      <div class="owner-only"><label>My % (this tech's cut to me)</label><input id="f_percentage" type="number" placeholder="e.g. 20"></div>
+      <div class="owner-only"><label>My Earning ($) <span style="color:var(--muted)">(auto)</span></label><input id="f_earning_preview" type="text" disabled></div>
+      <div class="owner-only"><label>Payment</label>
+        <select id="f_paid">
+          <option value="No">Pending</option>
+          <option value="Yes">Received</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="modalCancel">Cancel</button>
+      <button class="btn-blue" id="modalSave">Save Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMPLOYEE MANAGEMENT MODAL (owner only) -->
+<div class="modal-overlay" id="employeesModalOverlay">
+  <div class="modal" style="max-width:760px;">
+    <div class="flex-between">
+      <h3 style="margin:0;">👥 Employee Logins</h3>
+      <button class="btn-ghost" id="closeEmployeesModal" style="padding:4px 12px;">✕ Close</button>
+    </div>
+    <div class="footer-note" style="margin:8px 0 14px;">Give these to your dispatchers/agents. Each employee only sees the leads they add themselves — nothing else from your dashboard. Commission % is their cut of YOUR earning on each completed job (e.g. if you earn $400 on a job and their commission is 10%, they earn $40).</div>
+    <button class="btn-blue" id="genEmployeeBtn" style="margin-bottom:14px;">+ Generate New Login</button>
+    <div class="table-wrap" style="max-height:320px;">
+      <table>
+        <thead><tr><th>Employee Name</th><th>Username</th><th>Password</th><th>Commission %</th><th>Actions</th></tr></thead>
+        <tbody id="employeesBody"></tbody>
+      </table>
+      <div class="empty" id="employeesEmptyMsg" style="display:none;">No employee logins yet. Click "+ Generate New Login" to create one.</div>
+    </div>
+  </div>
+</div>
+
+<!-- INVOICE MODAL -->
+<div class="modal-overlay" id="invoiceModalOverlay">
+  <div class="modal" style="max-width:600px;">
+    <div class="flex-between no-print">
+      <h3 style="margin:0;">🧾 Invoice</h3>
+      <button class="btn-ghost" id="closeInvoiceModal" style="padding:4px 12px;">✕ Close</button>
+    </div>
+    <div id="invoiceContent"></div>
+    <div class="modal-actions no-print">
+      <button class="btn-ghost" id="invoicePrintBtn">🖨 Print</button>
+      <button class="btn-blue" id="invoiceDownloadBtn">⬇ Download</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   LOGIN
+   -------------------------------------------------------------------------
+   Mode A — No FIREBASE_CONFIG set (default): basic local screen-lock.
+     Username: homefixsolution   Password: anas1234567890
+     Works on every device, but each device needs its own login, and it's
+     NOT real security (visible in the file's source code).
+
+   Mode B — FIREBASE_CONFIG set (see sync section below): real accounts via
+     Firebase Authentication. Same email+password works from ANY device,
+     anywhere, and everyone shares the same live data. To set this up:
+     1. In your Firebase project (console.firebase.google.com):
+        Build > Authentication > Get started > Sign-in method > enable
+        "Email/Password".
+     2. Build > Authentication > Users tab > Add user. Enter an email
+        (e.g. anas@homefixsolution.com) and a password. This is the login
+        you'll use on every device.
+     3. Paste your Firebase config into FIREBASE_CONFIG below (same config
+        used for data sync). Once set, this login box automatically
+        switches to real Firebase login — no other changes needed.
+   ========================================================================= */
+const LOGIN_USERNAME = 'homefixsolution';
+const LOGIN_PASSWORD = 'anas1234567890';
+
+function showApp(){
+  document.getElementById('loginOverlay').classList.remove('active');
+  applyRoleVisibility();
+}
+
+function withTimeout(promise, ms, label){
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(()=> reject(new Error((label||'Request') + ' timed out — check your internet connection and try again.')), ms))
+  ]);
+}
+
+async function attemptLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const btn = document.getElementById('loginBtn');
+  document.getElementById('loginError').style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Signing in...';
+
+  try{
+    const looksLikeEmail = u.includes('@');
+
+    if(!looksLikeEmail){
+      // Employee usernames never contain "@", so only check this list
+      // when it's not an email — this also means owner logins skip this
+      // extra round-trip entirely and go straight to sign-in below.
+      const employees = await withTimeout(getEmployees(), 10000, 'Login');
+      const emp = employees.find(e=> e.username === u && e.password === p);
+      if(emp){
+        if(useFirebase && fauth && !fauth.currentUser){
+          try{ await withTimeout(fauth.signInAnonymously(), 10000, 'Login'); }catch(e){ /* rules will just block writes if this fails */ }
+        }
+        sessionRole = 'employee';
+        sessionEmployeeName = emp.name;
+        localStorage.setItem('hfs_logged_in', 'true');
+        localStorage.setItem('hfs_session_role', 'employee');
+        localStorage.setItem('hfs_session_employee_name', emp.name);
+        showApp();
+        return;
+      }
+    }
+
+    // Owner login
+    if(useFirebase && fauth){
+      await withTimeout(fauth.signInWithEmailAndPassword(u, p), 12000, 'Sign-in');
+      sessionRole = 'owner';
+      sessionEmployeeName = null;
+      localStorage.setItem('hfs_session_role', 'owner');
+      showApp();
+      return;
+    } else if(u === LOGIN_USERNAME && p === LOGIN_PASSWORD){
+      sessionRole = 'owner';
+      sessionEmployeeName = null;
+      localStorage.setItem('hfs_logged_in', 'true');
+      localStorage.setItem('hfs_session_role', 'owner');
+      showApp();
+      return;
+    }
+
+    document.getElementById('loginError').textContent = 'Wrong username or password.';
+    document.getElementById('loginError').style.display = 'block';
+  } catch(err){
+    document.getElementById('loginError').textContent = 'Login failed: ' + (err.message || 'wrong email or password.');
+    document.getElementById('loginError').style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+document.getElementById('loginBtn').addEventListener('click', attemptLogin);
+document.getElementById('loginPass').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') attemptLogin();
+});
+
+function doLogout(){
+  if(useFirebase && fauth){
+    fauth.signOut();
+  }
+  localStorage.removeItem('hfs_logged_in');
+  localStorage.removeItem('hfs_session_role');
+  localStorage.removeItem('hfs_session_employee_name');
+  sessionRole = null;
+  sessionEmployeeName = null;
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginOverlay').classList.add('active');
+}
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  if(confirm('Log out?')) doLogout();
+});
+
+document.getElementById('menuToggleBtn').addEventListener('click', ()=>{
+  document.getElementById('menuDropdown').classList.toggle('open');
+});
+document.addEventListener('click', e=>{
+  const dropdown = document.getElementById('menuDropdown');
+  const toggle = document.getElementById('menuToggleBtn');
+  if(dropdown.classList.contains('open') && !dropdown.contains(e.target) && e.target !== toggle){
+    dropdown.classList.remove('open');
+  }
+});
+// Close the menu after picking any action inside it
+document.getElementById('menuDropdown').addEventListener('click', e=>{
+  if(e.target.tagName === 'BUTTON') document.getElementById('menuDropdown').classList.remove('open');
+});
+
+document.getElementById('myInvoiceBtn').addEventListener('click', ()=>{
+  if(sessionRole === 'employee' && sessionEmployeeName) openInvoice(sessionEmployeeName);
+});
+
+function setupLoginUIForMode(){
+  if(useFirebase){
+    document.getElementById('loginUserLabel').textContent = 'Email / Username';
+    document.getElementById('loginUser').placeholder = 'you@example.com or employee username';
+    document.getElementById('loginNote').textContent = 'Owner: real account login, works from any device. Employees: use the login your admin gave you.';
+  } else {
+    document.getElementById('loginUserLabel').textContent = 'Username';
+    document.getElementById('loginUser').placeholder = 'Username';
+    document.getElementById('loginNote').textContent = "This is a basic screen lock, not bank-level security — anyone with the file's source code could bypass it. Don't use it to protect highly sensitive data.";
+  }
+}
+
+// ---------------- ROLES: OWNER vs EMPLOYEE ----------------
+function applyRoleVisibility(){
+  document.body.classList.toggle('role-employee', sessionRole === 'employee');
+  document.getElementById('myInvoiceBtn').style.display = (sessionRole === 'employee') ? 'inline-block' : 'none';
+  if(sessionRole === 'employee'){
+    document.getElementById('mainTitle').textContent = 'Home Fix Solution — Lead Entry';
+    document.getElementById('leadsHeadingPrefix').textContent = 'My Leads';
+    document.getElementById('yourEarningHeader').textContent = 'Your Earning ($)';
+  } else {
+    document.getElementById('mainTitle').textContent = 'Home Fix Solution — Leads Dashboard';
+    document.getElementById('leadsHeadingPrefix').textContent = 'Leads';
+    document.getElementById('yourEarningHeader').textContent = 'Employee Earning ($)';
+  }
+  if(sessionRole === 'owner'){
+    renderEmployees();
+  }
+}
+
+async function renderEmployees(){
+  const employees = await getEmployees();
+  const tbody = document.getElementById('employeesBody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  document.getElementById('employeesEmptyMsg').style.display = employees.length ? 'none' : 'block';
+  employees.forEach(emp=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHtml(emp.name)}</td>
+      <td>${escapeHtml(emp.username)}</td>
+      <td>${escapeHtml(emp.password)}</td>
+      <td><input type="number" class="commission-pct-input" data-username="${escapeHtml(emp.username)}" value="${emp.commissionPercent!=null?emp.commissionPercent:10}" style="width:70px;"></td>
+      <td class="row-actions">
+        <button class="btn-ghost copy-emp-btn" data-username="${escapeHtml(emp.username)}" data-password="${escapeHtml(emp.password)}">Copy</button>
+        <button class="btn-blue view-invoice-btn" data-name="${escapeHtml(emp.name)}">Invoice</button>
+        <button class="btn-danger del-emp-btn" data-username="${escapeHtml(emp.username)}">Del</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.commission-pct-input').forEach(inp=>{
+    inp.addEventListener('change', async e=>{
+      const username = e.target.dataset.username;
+      const employees = await getEmployees();
+      const emp = employees.find(x=>x.username===username);
+      if(!emp) return;
+      emp.commissionPercent = parseFloat(e.target.value) || 0;
+      await saveEmployeeDoc(emp);
+      showToast('Commission % updated for ' + emp.name);
+    });
+  });
+  tbody.querySelectorAll('.copy-emp-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const u = e.target.dataset.username, p = e.target.dataset.password;
+      const text = `Username: ${u}\nPassword: ${p}`;
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(()=> showToast('Login copied to clipboard')).catch(()=> alert(text));
+      } else {
+        alert(text);
+      }
+    });
+  });
+  tbody.querySelectorAll('.view-invoice-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      openInvoice(e.target.dataset.name);
+    });
+  });
+  tbody.querySelectorAll('.del-emp-btn').forEach(btn=>{
+    btn.addEventListener('click', async e=>{
+      if(!confirm('Delete this employee login? They will no longer be able to sign in.')) return;
+      await deleteEmployeeDoc(e.target.dataset.username);
+      renderEmployees();
+    });
+  });
+}
+
+function randomString(len, chars){
+  let out='';
+  for(let i=0;i<len;i++) out += chars[Math.floor(Math.random()*chars.length)];
+  return out;
+}
+
+// ---------------- INVOICES ----------------
+async function openInvoice(employeeName){
+  currentInvoiceEmployeeName = employeeName;
+  const periods = await getPeriods();
+  let jobs = [];
+  for(const p of periods){
+    const leads = await getLeads(p.id);
+    leads.filter(l => l.addedBy === employeeName && l.status === 'Completed' && (l.employeeEarning||0) > 0)
+         .forEach(l => jobs.push({...l, monthLabel: p.label || periodLabel(p.startDate)}));
+  }
+  jobs.sort((a,b)=> (a.createdAt||0)-(b.createdAt||0));
+  const total = jobs.reduce((s,j)=> s+(j.employeeEarning||0), 0);
+  const today = new Date().toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'});
+
+  const jobBlocksHtml = jobs.length
+    ? jobs.map((j,i) => `
+      <div class="invoice-job-block">
+        <div class="invoice-job-row"><span class="invoice-job-label">#</span><span>${i+1}</span></div>
+        <div class="invoice-job-row"><span class="invoice-job-label">Month</span><span>${escapeHtml(j.monthLabel)}</span></div>
+        <div class="invoice-job-row"><span class="invoice-job-label">Job Date</span><span>${escapeHtml(j.date||'-')}</span></div>
+        <div class="invoice-job-row"><span class="invoice-job-label">Service</span><span>${escapeHtml(j.category||'-')} — ${escapeHtml(j.service||'-')}</span></div>
+        <div class="invoice-job-row"><span class="invoice-job-label">Location</span><span>${escapeHtml(j.city||'')} ${escapeHtml(j.state||'')} ${escapeHtml(j.zip||'')}</span></div>
+        <div class="invoice-job-row invoice-job-earning"><span class="invoice-job-label">Earning</span><span>$${(j.employeeEarning||0).toFixed(2)}</span></div>
+      </div>
+    `).join('')
+    : `<div style="text-align:center; color:#888; padding:20px;">No completed jobs with earnings yet.</div>`;
+
+  const html = `
+    <div class="invoice-box">
+      <h2>Home Fix Solution</h2>
+      <div>Invoice for: <strong>${escapeHtml(employeeName)}</strong></div>
+      <div style="color:#555; font-size:13px; margin-bottom:10px;">Generated: ${today}</div>
+      ${jobBlocksHtml}
+      <div class="invoice-total">Total Earned: $${total.toFixed(2)}</div>
+    </div>
+  `;
+  document.getElementById('invoiceContent').innerHTML = html;
+  document.getElementById('invoiceModalOverlay').classList.add('active');
+}
+
+document.getElementById('closeInvoiceModal').addEventListener('click', ()=>{
+  document.getElementById('invoiceModalOverlay').classList.remove('active');
+});
+document.getElementById('invoicePrintBtn').addEventListener('click', ()=>{
+  window.print();
+});
+document.getElementById('invoiceDownloadBtn').addEventListener('click', ()=>{
+  const content = document.getElementById('invoiceContent').innerHTML;
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Invoice</title>
+    <style>
+      body{font-family:Arial,sans-serif; padding:24px;}
+      .invoice-job-block{border:1px solid #ddd; border-radius:8px; padding:12px 14px; margin-top:10px; background:#fafafa;}
+      .invoice-job-row{display:flex; justify-content:space-between; padding:3px 0; font-size:13px; border-bottom:1px dashed #e2e2e2;}
+      .invoice-job-row:last-child{border-bottom:none;}
+      .invoice-job-label{color:#777; font-weight:600;}
+      .invoice-job-earning{font-weight:800; font-size:15px; color:#0a7a35;}
+      .invoice-total{font-size:18px; font-weight:800; text-align:right; margin-top:12px;}
+    </style>
+  </head><body>${content}</body></html>`;
+  const blob = new Blob([fullHtml], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Invoice_${(currentInvoiceEmployeeName||'Employee').replace(/[^a-zA-Z0-9]/g,'_')}_${new Date().toISOString().slice(0,10)}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('secureOldDataBtn').addEventListener('click', async ()=>{
+  if(!useFirebase){ showToast('This is only needed when live sync is on.', true); return; }
+  if(!confirm('This re-saves every existing lead so job value, tech info, and payment details are moved to a protected, owner-only area that employees can never read — even with technical tools. It can take a minute for a lot of leads. Continue?')) return;
+  showToast('Securing old data... please wait');
+  let count = 0;
+  const periods = await getPeriods();
+  for(const p of periods){
+    const leads = await getLeads(p.id);
+    for(const lead of leads){
+      await saveLead(p.id, lead);
+      count++;
+    }
+  }
+  showToast(`Done — ${count} lead(s) secured.`);
+});
+
+document.getElementById('employeesModalBtn').addEventListener('click', ()=>{
+  document.getElementById('employeesModalOverlay').classList.add('active');
+  renderEmployees();
+});
+document.getElementById('closeEmployeesModal').addEventListener('click', ()=>{
+  document.getElementById('employeesModalOverlay').classList.remove('active');
+});
+
+document.getElementById('genEmployeeBtn').addEventListener('click', async ()=>{
+  const name = prompt('Employee name:');
+  if(!name || !name.trim()) return;
+  const employees = await getEmployees();
+  let username;
+  do{
+    username = 'emp' + randomString(4, '0123456789');
+  } while(employees.some(e=>e.username===username));
+  const password = randomString(8, 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789');
+  await saveEmployeeDoc({name: name.trim(), username, password, createdAt: Date.now()});
+  await renderEmployees();
+  showToast('New login created for ' + name.trim());
+});
+
+/* =========================================================================
+   OPTIONAL MULTI-DEVICE / MULTI-USER SYNC (+ real login from anywhere)
+   -------------------------------------------------------------------------
+   By default this dashboard saves data only in THIS browser (localStorage)
+   and uses a basic local username/password (see the LOGIN section below).
+
+   To make BOTH data sync AND login work from any device, anywhere:
+     1. Go to https://console.firebase.google.com -> Create a free project
+     2. Build > Firestore Database > Create database (start in test mode)
+     3. Build > Authentication > Get started > Sign-in method > enable
+        "Email/Password"
+     4. Build > Authentication > Users tab > Add user (enter an email and
+        password — this is what you'll log in with, from any device)
+     5. Project settings > General > Add app (Web) > copy the config object
+     6. Paste that config object below, replacing "null"
+     7. Save this file and re-share it with your team — everyone who opens
+        THIS file (with the config filled in) will log in with their own
+        email/password and see the same live data.
+   Leave it as "null" to keep using local-only storage + basic login.
+   ========================================================================= */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCT5qLOOxK6SeFMn-KBfjONGKPVxml_L6M",
+  authDomain: "home-fix-solution-f040a.firebaseapp.com",
+  projectId: "home-fix-solution-f040a",
+  storageBucket: "home-fix-solution-f040a.firebasestorage.app",
+  messagingSenderId: "995278120541",
+  appId: "1:995278120541:web:600173251f32e255b44fb4",
+  measurementId: "G-W9FWYCV66H"
+};
+/* Example:
+const FIREBASE_CONFIG = {
+  apiKey: "AIza...",
+  authDomain: "yourproject.firebaseapp.com",
+  projectId: "yourproject",
+  storageBucket: "yourproject.appspot.com",
+  messagingSenderId: "...",
+  appId: "..."
+};
+*/
+
+
+let useFirebase = false;
+let fdb = null;
+let fauth = null;
+let sessionRole = null; // 'owner' | 'employee'
+let currentInvoiceEmployeeName = null;
+let sessionEmployeeName = null;
+let currentPeriod = null;
+let editingId = null;
+let currentSearchTerm = '';
+let unsubLeads = null;
+let unsubPeriods = null;
+let unsubSettings = null;
+
+
+// ---------------- STORAGE LAYER ----------------
+async function initStorage(){
+  const badge = document.getElementById('syncStatus');
+  if(FIREBASE_CONFIG){
+    try{
+      firebase.initializeApp(FIREBASE_CONFIG);
+      fdb = firebase.firestore();
+      fauth = firebase.auth();
+      useFirebase = true;
+      badge.textContent = '🟢 Synced live — everyone signed in shares the same data';
+    }catch(e){
+      console.error(e);
+      useFirebase = false;
+      badge.textContent = '🔴 Sync setup failed — using local storage only on this device';
+    }
+  } else {
+    useFirebase = false;
+    badge.textContent = '⚪ Local only — data is saved in this browser/device only (see code comments to enable live sync)';
+  }
+  setupLoginUIForMode();
+}
+
+function localGet(key, fallback){
+  const v = localStorage.getItem(key);
+  return v ? JSON.parse(v) : fallback;
+}
+function localSet(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+async function getPeriods(){
+  if(useFirebase){
+    const snap = await fdb.collection('periods').orderBy('startDate').get();
+    return snap.docs.map(d=>({id:d.id, ...d.data()}));
+  }
+  return localGet('hfs_periods_index', []);
+}
+async function savePeriodDoc(period){
+  if(useFirebase){
+    await fdb.collection('periods').doc(period.id).set(period);
+  } else {
+    let periods = localGet('hfs_periods_index', []);
+    const i = periods.findIndex(p=>p.id===period.id);
+    if(i>=0) periods[i]=period; else periods.push(period);
+    localSet('hfs_periods_index', periods);
+  }
+}
+async function deletePeriodDoc(id){
+  if(useFirebase){
+    const leadsSnap = await fdb.collection('periods').doc(id).collection('leads').get();
+    const batch = fdb.batch();
+    leadsSnap.docs.forEach(d=>batch.delete(d.ref));
+    batch.delete(fdb.collection('periods').doc(id).collection('meta').doc('settings'));
+    batch.delete(fdb.collection('periods').doc(id));
+    await batch.commit();
+  } else {
+    let periods = localGet('hfs_periods_index', []).filter(p=>p.id!==id);
+    localSet('hfs_periods_index', periods);
+    localStorage.removeItem('hfs_leads_'+id);
+    localStorage.removeItem('hfs_settings_'+id);
+  }
+}
+const FINANCIAL_FIELDS = ['techname','techphone','jobValue','percentage','paid','earning'];
+
+async function getLeads(periodId){
+  if(useFirebase){
+    const snap = await fdb.collection('periods').doc(periodId).collection('leads').get();
+    const leads = [];
+    for(const d of snap.docs){
+      let lead = {id: d.id, ...d.data()};
+      if(sessionRole === 'owner'){
+        try{
+          const finDoc = await fdb.collection('periods').doc(periodId).collection('leads').doc(d.id).collection('financials').doc('data').get();
+          if(finDoc.exists) lead = {...lead, ...finDoc.data()};
+        }catch(e){ /* employee session or offline — ignore, base fields still work */ }
+      }
+      leads.push(lead);
+    }
+    return leads;
+  }
+  return localGet('hfs_leads_'+periodId, []);
+}
+async function saveLead(periodId, lead){
+  if(useFirebase){
+    const publicFields = {...lead};
+    const financialFields = {};
+    FINANCIAL_FIELDS.forEach(f=>{ financialFields[f] = lead[f]; delete publicFields[f]; });
+    // Write financials FIRST — the public doc write below is what triggers
+    // the live listener/re-render, so by the time that happens the
+    // financials subdoc must already be fully saved (otherwise the
+    // re-render can briefly read it as missing and flicker/blank out
+    // Job Value, Tech Name, My Earning etc).
+    if(sessionRole === 'owner'){
+      await fdb.collection('periods').doc(periodId).collection('leads').doc(lead.id).collection('financials').doc('data').set(financialFields);
+    }
+    await fdb.collection('periods').doc(periodId).collection('leads').doc(lead.id).set(publicFields);
+  } else {
+    let leads = localGet('hfs_leads_'+periodId, []);
+    const i = leads.findIndex(l=>l.id===lead.id);
+    if(i>=0) leads[i]=lead; else leads.push(lead);
+    localSet('hfs_leads_'+periodId, leads);
+  }
+}
+async function deleteLeadDoc(periodId, leadId){
+  if(useFirebase){
+    try{
+      await fdb.collection('periods').doc(periodId).collection('leads').doc(leadId).collection('financials').doc('data').delete();
+    }catch(e){ /* ignore — non-owner can't delete this anyway, rules protect it */ }
+    await fdb.collection('periods').doc(periodId).collection('leads').doc(leadId).delete();
+  } else {
+    let leads = localGet('hfs_leads_'+periodId, []).filter(l=>l.id!==leadId);
+    localSet('hfs_leads_'+periodId, leads);
+  }
+}
+async function getSettings(periodId){
+  if(useFirebase){
+    const doc = await fdb.collection('periods').doc(periodId).collection('meta').doc('settings').get();
+    return doc.exists ? doc.data() : {investment:'', otherCost:''};
+  }
+  return localGet('hfs_settings_'+periodId, {investment:'', otherCost:''});
+}
+async function saveSettingsDoc(periodId, settings){
+  if(useFirebase){
+    await fdb.collection('periods').doc(periodId).collection('meta').doc('settings').set(settings);
+  } else {
+    localSet('hfs_settings_'+periodId, settings);
+  }
+}
+
+// ---------------- EMPLOYEE ACCOUNTS ----------------
+async function getEmployees(){
+  if(useFirebase){
+    const snap = await fdb.collection('employees').get();
+    return snap.docs.map(d=>({username:d.id, ...d.data()}));
+  }
+  return localGet('hfs_employees', []);
+}
+async function saveEmployeeDoc(emp){
+  if(useFirebase){
+    await fdb.collection('employees').doc(emp.username).set(emp);
+  } else {
+    let list = localGet('hfs_employees', []);
+    const i = list.findIndex(e=>e.username===emp.username);
+    if(i>=0) list[i]=emp; else list.push(emp);
+    localSet('hfs_employees', list);
+  }
+}
+async function deleteEmployeeDoc(username){
+  if(useFirebase){
+    await fdb.collection('employees').doc(username).delete();
+  } else {
+    let list = localGet('hfs_employees', []).filter(e=>e.username!==username);
+    localSet('hfs_employees', list);
+  }
+}
+
+// ---------------- PERIOD (MONTH) HELPERS ----------------
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function fmtDate(d){
+  return d.toLocaleDateString('en-US',{day:'2-digit', month:'short', year:'numeric'});
+}
+function periodLabel(startDate){
+  const start = new Date(startDate);
+  return MONTH_NAMES[start.getMonth()] + ' ' + start.getFullYear();
+}
+
+// Creates all 12 months (January – December) for a given year, if they
+// don't already exist. Keeps things simple: no rolling 30-day logic.
+async function ensureYearMonths(year){
+  const periods = await getPeriods();
+  const existingIds = new Set(periods.map(p=>p.id));
+  for(let m=0; m<12; m++){
+    const id = 'y'+year+'_'+String(m+1).padStart(2,'0');
+    if(!existingIds.has(id)){
+      const startDate = new Date(year, m, 1).toISOString();
+      const p = {id, startDate, index:m+1, year};
+      p.label = MONTH_NAMES[m] + ' ' + year;
+      await savePeriodDoc(p);
+    }
+  }
+}
+// One-time cleanup: removes leftover months from the old "rolling 30-day"
+// system (ids like "p1", "p2_...") which no longer matches the new simple
+// January–December format (ids like "y2026_07"). This also removes any
+// test/leftover leads and profit numbers that came along with them.
+async function cleanupOldFormatPeriods(){
+  const periods = await getPeriods();
+  const legacy = periods.filter(p => !/^y\d{4}_\d{2}$/.test(p.id));
+  for(const p of legacy){
+    await deletePeriodDoc(p.id);
+  }
+  if(legacy.length){
+    showToast(legacy.length + ' old/leftover month(s) cleaned up');
+  }
+}
+
+async function ensureFirstPeriod(){
+  await cleanupOldFormatPeriods();
+  const nowYear = new Date().getFullYear();
+  await ensureYearMonths(nowYear);
+  return await getPeriods();
+}
+
+async function populatePeriodSelect(){
+  let periods = await getPeriods();
+  periods.sort((a,b)=> new Date(a.startDate)-new Date(b.startDate));
+  const sel = document.getElementById('periodSelect');
+  sel.innerHTML = periods.map(p=>`<option value="${p.id}">${p.label || periodLabel(p.startDate)}</option>`).join('');
+  if(!currentPeriod || !periods.find(p=>p.id===currentPeriod)){
+    // default to the current calendar month if it exists, else the last one
+    const now = new Date();
+    const todayId = 'y'+now.getFullYear()+'_'+String(now.getMonth()+1).padStart(2,'0');
+    currentPeriod = periods.find(p=>p.id===todayId) ? todayId : periods[periods.length-1].id;
+  }
+  sel.value = currentPeriod;
+  document.getElementById('periodNote').textContent = '';
+  return periods;
+}
+
+document.getElementById('periodSelect').addEventListener('change', async e=>{
+  currentPeriod = e.target.value;
+  await populatePeriodSelect();
+  attachLiveListeners();
+  renderAll();
+});
+
+document.getElementById('newPeriodBtn').addEventListener('click', async ()=>{
+  const periods = await getPeriods();
+  const years = periods.map(p=>p.year || new Date(p.startDate).getFullYear());
+  const nextYear = (years.length ? Math.max(...years) : new Date().getFullYear()) + 1;
+  await ensureYearMonths(nextYear);
+  await populatePeriodSelect();
+  attachLiveListeners();
+  renderAll();
+  showToast(nextYear + ' months added (January – December)');
+});
+
+document.getElementById('deletePeriodBtn').addEventListener('click', async ()=>{
+  if(!confirm('Delete all leads and data for this month? This cannot be undone.')) return;
+  await deletePeriodDoc(currentPeriod);
+  const periods = await getPeriods();
+  currentPeriod = periods.sort((a,b)=> new Date(a.startDate)-new Date(b.startDate)).slice(-1)[0]?.id || null;
+  if(!currentPeriod){
+    await ensureFirstPeriod();
+  }
+  await populatePeriodSelect();
+  attachLiveListeners();
+  renderAll();
+  showToast('Month deleted');
+});
+
+// ---------------- PARSER ----------------
+const FIELD_ALIASES = {
+  name: ['name','full name','customer name','client name','lead name'],
+  state: ['state'],
+  city: ['city','town'],
+  address: ['address','street address','full address','location','service location'],
+  category: ['category','job category','request category'],
+  service: ['service','service requested','requested service','job type','service type'],
+  coupon: ['coupon','coupon code','promo','promo code','discount code'],
+  email: ['email','email address'],
+  phone: ['phone','phone number','contact number','mobile','cell'],
+  zip: ['zip','zip code','zipcode','postal code','postcode'],
+  date: ['date','requested date','job date','preferred date','appointment date'],
+  time: ['time','requested time','job time','preferred time','time slot','appointment time'],
+  techname: ['tech','tech name','technician','technician name','assigned tech']
+};
+
+function parseLeadText(text){
+  const result = {name:'',state:'',city:'',address:'',category:'',service:'',coupon:'',email:'',phone:'',zip:'',date:'',time:'',techname:''};
+  const lines = text.split(/\r?\n/);
+
+  function matchLabel(label){
+    for(const key in FIELD_ALIASES){
+      if(FIELD_ALIASES[key].some(alias => alias === label)) return key;
+    }
+    return null;
+  }
+
+  lines.forEach(line=>{
+    if(!line.trim()) return;
+    let label = null, value = null;
+
+    if(line.includes('\t')){
+      // Tab-separated: "Label<TAB>Value"
+      const parts = line.split('\t').map(p=>p.trim()).filter(p=>p!=='');
+      if(parts.length>=2){
+        label = parts[0].toLowerCase();
+        value = parts.slice(1).join(' ').trim();
+      }
+    }
+    if(!label){
+      // Colon or dash separated: "Label: Value" / "Label - Value"
+      const m = line.match(/^\s*([A-Za-z \/]+?)\s*[:\-]\s*(.+)$/);
+      if(m){
+        label = m[1].trim().toLowerCase();
+        value = m[2].trim();
+      }
+    }
+    if(!label){
+      // Two-or-more-spaces separated: "Label    Value"
+      const m2 = line.match(/^\s*([A-Za-z \/]+?)\s{2,}(.+)$/);
+      if(m2){
+        label = m2[1].trim().toLowerCase();
+        value = m2[2].trim();
+      }
+    }
+    if(!label || !value) return;
+    const key = matchLabel(label);
+    if(key && !result[key]) result[key] = value;
+  });
+
+  // If a field is still empty, check for "Label" on its own line followed
+  // by its value on the very next line (some email templates do this).
+  for(let i=0;i<lines.length-1;i++){
+    const label = lines[i].trim().toLowerCase();
+    const key = matchLabel(label);
+    if(key && !result[key]){
+      const nextVal = lines[i+1].trim();
+      if(nextVal && !matchLabel(nextVal.toLowerCase())){
+        result[key] = nextVal;
+      }
+    }
+  }
+
+  if(!result.email){
+    const em = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if(em) result.email = em[0];
+  }
+  if(!result.phone){
+    const ph = text.match(/(\+?\d[\d\-\s\(\)]{8,15}\d)/);
+    if(ph) result.phone = ph[0].trim();
+  }
+  if(!result.zip){
+    const z = text.match(/\b\d{5}(-\d{4})?\b/);
+    if(z) result.zip = z[0];
+  }
+  return result;
+}
+
+document.getElementById('searchInput').addEventListener('input', e=>{
+  currentSearchTerm = e.target.value;
+  renderAll();
+});
+document.getElementById('clearSearchBtn').addEventListener('click', ()=>{
+  currentSearchTerm = '';
+  document.getElementById('searchInput').value = '';
+  renderAll();
+});
+
+document.getElementById('parseBtn').addEventListener('click', ()=>{
+  const text = document.getElementById('pasteBox').value.trim();
+  if(!text){ showToast('Paste a lead email first', true); return; }
+  const parsed = parseLeadText(text);
+  openModal(parsed, null);
+});
+document.getElementById('clearPasteBtn').addEventListener('click', ()=>{
+  document.getElementById('pasteBox').value='';
+});
+document.getElementById('manualAddBtn').addEventListener('click', ()=>{
+  openModal({name:'',state:'',city:'',address:'',category:'',service:'',coupon:'',email:'',phone:'',zip:'',date:'',time:'',techname:''}, null);
+});
+
+// ---------------- MODAL ----------------
+let editingOriginalData = null;
+function openModal(data, id){
+  editingId = id;
+  editingOriginalData = id ? data : null;
+  document.getElementById('modalTitle').textContent = id ? 'Edit Lead' : 'Review & Save Lead';
+  document.getElementById('f_addedby').value = data.addedBy || (sessionRole==='employee' ? sessionEmployeeName : (id ? 'Owner' : ''));
+  document.getElementById('f_name').value = data.name||'';
+  document.getElementById('f_state').value = data.state||'';
+  document.getElementById('f_city').value = data.city||'';
+  document.getElementById('f_address').value = data.address||'';
+  document.getElementById('f_category').value = data.category||'';
+  document.getElementById('f_service').value = data.service||'';
+  document.getElementById('f_coupon').value = data.coupon||'';
+  document.getElementById('f_email').value = data.email||'';
+  document.getElementById('f_phone').value = data.phone||'';
+  document.getElementById('f_zip').value = data.zip||'';
+  document.getElementById('f_date').value = data.date||'';
+  document.getElementById('f_time').value = data.time||'';
+  document.getElementById('f_status').value = data.status||'New';
+  document.getElementById('f_status').disabled = (sessionRole === 'employee');
+  document.getElementById('f_techname').value = data.techname||'';
+  document.getElementById('f_techphone').value = data.techphone||'';
+  updateWaPreview();
+  document.getElementById('f_jobvalue').value = data.jobValue||'';
+  document.getElementById('f_percentage').value = data.percentage||'';
+  document.getElementById('f_paid').value = data.paid||'No';
+  updateEarningPreview();
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function updateEarningPreview(){
+  const jv = parseFloat(document.getElementById('f_jobvalue').value) || 0;
+  const pct = parseFloat(document.getElementById('f_percentage').value) || 0;
+  const earning = jv * (pct/100);
+  document.getElementById('f_earning_preview').value = '$'+earning.toFixed(2);
+}
+document.getElementById('f_jobvalue').addEventListener('input', updateEarningPreview);
+document.getElementById('f_percentage').addEventListener('input', updateEarningPreview);
+
+function updateWaPreview(){
+  const raw = document.getElementById('f_techphone').value;
+  const digits = formatPhoneForWhatsApp(raw);
+  const box = document.getElementById('waPreview');
+  if(!raw.trim()){
+    box.textContent = '';
+    box.style.color = 'var(--muted)';
+  } else if(digits.length < 10 || digits.length > 15){
+    box.textContent = '⚠️ This doesn\'t look complete — make sure you included the country code (e.g. 1 for USA, 92 for Pakistan).';
+    box.style.color = 'var(--red)';
+  } else {
+    box.textContent = '✓ WhatsApp will open: +' + digits;
+    box.style.color = 'var(--green)';
+  }
+}
+document.getElementById('f_techphone').addEventListener('input', updateWaPreview);
+document.getElementById('modalCancel').addEventListener('click', ()=>{
+  document.getElementById('modalOverlay').classList.remove('active');
+});
+document.getElementById('modalSave').addEventListener('click', async ()=>{
+  const isEmployeeSaving = sessionRole === 'employee';
+  const lead = {
+    id: editingId || (Date.now()+Math.random().toString(16).slice(2)),
+    name: document.getElementById('f_name').value.trim(),
+    state: document.getElementById('f_state').value.trim(),
+    city: document.getElementById('f_city').value.trim(),
+    address: document.getElementById('f_address').value.trim(),
+    category: document.getElementById('f_category').value.trim(),
+    service: document.getElementById('f_service').value.trim(),
+    coupon: document.getElementById('f_coupon').value.trim(),
+    email: document.getElementById('f_email').value.trim(),
+    phone: document.getElementById('f_phone').value.trim(),
+    zip: document.getElementById('f_zip').value.trim(),
+    date: document.getElementById('f_date').value.trim(),
+    time: document.getElementById('f_time').value.trim(),
+    status: isEmployeeSaving ? (editingOriginalData ? editingOriginalData.status : 'New') : document.getElementById('f_status').value,
+    createdAt: editingId ? (editingOriginalData && editingOriginalData.createdAt ? editingOriginalData.createdAt : Date.now()) : Date.now(),
+    addedBy: document.getElementById('f_addedby').value.trim() || (sessionRole==='employee' ? sessionEmployeeName : 'Owner')
+  };
+
+  if(isEmployeeSaving){
+    // Employees never see or set these — always keep whatever was already there
+    lead.techname = editingOriginalData ? (editingOriginalData.techname||'') : '';
+    lead.techphone = editingOriginalData ? (editingOriginalData.techphone||'') : '';
+    lead.jobValue = editingOriginalData ? (editingOriginalData.jobValue||0) : 0;
+    lead.percentage = editingOriginalData ? (editingOriginalData.percentage||0) : 0;
+    lead.paid = editingOriginalData ? (editingOriginalData.paid||'No') : 'No';
+    lead.earning = editingOriginalData ? (editingOriginalData.earning||0) : 0;
+    lead.employeeEarning = editingOriginalData ? (editingOriginalData.employeeEarning||0) : 0;
+  } else {
+    lead.techname = document.getElementById('f_techname').value.trim();
+    lead.techphone = document.getElementById('f_techphone').value.trim();
+    lead.jobValue = parseFloat(document.getElementById('f_jobvalue').value) || 0;
+    lead.percentage = parseFloat(document.getElementById('f_percentage').value) || 0;
+    lead.paid = document.getElementById('f_paid').value;
+    lead.earning = lead.jobValue * (lead.percentage/100);
+
+    // This employee's cut of MY earning (never based on raw job value directly)
+    if(lead.addedBy && lead.addedBy !== 'Owner'){
+      const employees = await getEmployees();
+      const emp = employees.find(e => e.name === lead.addedBy);
+      const commissionPct = emp ? (emp.commissionPercent != null ? emp.commissionPercent : 10) : 10;
+      lead.employeeEarning = lead.earning * (commissionPct/100);
+    } else {
+      lead.employeeEarning = 0;
+    }
+  }
+
+  await saveLead(currentPeriod, lead);
+  document.getElementById('modalOverlay').classList.remove('active');
+  document.getElementById('pasteBox').value = '';
+  if(!useFirebase) renderAll();
+  showToast('Lead saved ✓');
+});
+
+// ---------------- RENDER ----------------
+async function renderProfitChart(){
+  const periods = await getPeriods();
+  let allLeads = [];
+  for(const p of periods){
+    const leads = await getLeads(p.id);
+    allLeads = allLeads.concat(leads);
+  }
+  const completed = allLeads.filter(l=> l.status==='Completed' && l.createdAt);
+
+  const now = new Date();
+  const todayStr = now.toDateString();
+  const startOfWeek = new Date(now);
+  const dayNum = startOfWeek.getDay(); // 0=Sun..6=Sat
+  const diffToMonday = (dayNum===0 ? -6 : 1-dayNum);
+  startOfWeek.setDate(startOfWeek.getDate()+diffToMonday);
+  startOfWeek.setHours(0,0,0,0);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  let daily=0, weekly=0, monthly=0;
+  completed.forEach(l=>{
+    const d = new Date(l.createdAt);
+    const earn = l.earning||0;
+    if(d.toDateString()===todayStr) daily += earn;
+    if(d >= startOfWeek) weekly += earn;
+    if(d >= startOfMonth) monthly += earn;
+  });
+
+  const cards = [
+    {label:"Today's Profit", value:'$'+daily.toFixed(2)},
+    {label:"This Week's Profit", value:'$'+weekly.toFixed(2)},
+    {label:"This Month's Profit", value:'$'+monthly.toFixed(2)},
+  ];
+  document.getElementById('profitChartCards').innerHTML = cards.map(c=>`
+    <div class="mini-card">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value}</div>
+    </div>
+  `).join('');
+}
+
+function formatPhoneForWhatsApp(phone){
+  // No guessing here on purpose — the person types the FULL number
+  // themselves (with country code), so this just strips formatting
+  // characters (spaces, dashes, brackets, +, leading 00).
+  let digits = (phone||'').replace(/[^\d]/g,'');
+  if(digits.startsWith('00')) digits = digits.slice(2);
+  return digits;
+}
+
+function buildWaMessage(lead){
+  return `New job assigned:\nCustomer: ${lead.name||'-'}\nPhone: ${lead.phone||'-'}\nAddress: ${lead.address||'-'}, ${lead.city||''} ${lead.state||''} ${lead.zip||''}\nService: ${lead.service||'-'}\nDate/Time: ${lead.date||'-'} ${lead.time||''}`;
+}
+
+async function renderAll(){
+  const periods = await getPeriods();
+  const p = periods.find(x=>x.id===currentPeriod);
+  document.getElementById('periodLabel').textContent = p ? (p.label || periodLabel(p.startDate)) : '';
+
+  let leads = await getLeads(currentPeriod);
+  if(sessionRole === 'employee'){
+    leads = leads.filter(l => l.addedBy === sessionEmployeeName);
+  }
+  leads.sort((a,b)=> (a._order||0)-(b._order||0));
+
+  const term = (currentSearchTerm||'').trim().toLowerCase();
+  const displayLeads = term
+    ? leads.filter(l => (l.phone||'').toLowerCase().includes(term) || (l.zip||'').toLowerCase().includes(term))
+    : leads;
+
+  const tbody = document.getElementById('leadsBody');
+  tbody.innerHTML = '';
+  document.getElementById('emptyMsg').style.display = displayLeads.length ? 'none' : 'block';
+  if(term && displayLeads.length===0){
+    document.getElementById('emptyMsg').textContent = 'No leads match that phone number or zip code.';
+  } else {
+    document.getElementById('emptyMsg').textContent = 'No leads yet for this month. Paste an email above or add manually.';
+  }
+
+  displayLeads.forEach((l, i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${escapeHtml(l.name)}</td>
+      <td>${escapeHtml(l.state)}</td>
+      <td>${escapeHtml(l.city)}</td>
+      <td>${escapeHtml(l.address)}</td>
+      <td>${escapeHtml(l.category)}</td>
+      <td>${escapeHtml(l.service)}</td>
+      <td>${escapeHtml(l.coupon)}</td>
+      <td>${escapeHtml(l.email)}</td>
+      <td>${escapeHtml(l.phone)}</td>
+      <td>${escapeHtml(l.zip)}</td>
+      <td>${escapeHtml(l.date)}</td>
+      <td>${escapeHtml(l.time)}</td>
+      <td class="owner-only"><input class="techname-input" data-id="${l.id}" value="${escapeHtml(l.techname||'')}"></td>
+      <td class="owner-only"><input class="jobvalue-input" type="number" data-id="${l.id}" value="${l.jobValue||0}"></td>
+      <td class="owner-only"><input class="percentage-input" type="number" data-id="${l.id}" value="${l.percentage||0}"></td>
+      <td class="earning-cell owner-only">$${(l.earning||0).toFixed(2)}</td>
+      <td class="earning-cell">$${(l.employeeEarning||0).toFixed(2)}</td>
+      <td class="owner-only"><select class="paid-select" data-id="${l.id}">
+          <option value="No" ${(l.paid==='No'||!l.paid)?'selected':''}>Pending</option>
+          <option value="Yes" ${l.paid==='Yes'?'selected':''}>Received</option>
+      </select></td>
+      <td class="owner-only">${escapeHtml(l.addedBy||'Owner')}</td>
+      <td><select class="status status-${(l.status||'New').toLowerCase()}" data-id="${l.id}" ${sessionRole==='employee' ? 'disabled title="Only the owner can change job status"' : ''}>
+          <option ${l.status==='New'?'selected':''}>New</option>
+          <option ${l.status==='Booked'?'selected':''}>Booked</option>
+          <option ${l.status==='Completed'?'selected':''}>Completed</option>
+          <option ${l.status==='Cancelled'?'selected':''}>Cancelled</option>
+      </select></td>
+      <td class="row-actions">
+        ${(() => {
+          if(sessionRole === 'employee') return '';
+          if(!l.techphone) return `<button class="btn-green" disabled title="Add Tech Phone first">WA</button>`;
+          const waDigits = formatPhoneForWhatsApp(l.techphone);
+          if(waDigits.length < 10 || waDigits.length > 15){
+            return `<button class="btn-green" disabled title="Check this phone number — it doesn't look complete">WA</button>`;
+          }
+          return `<a class="btn-green wa-link" href="https://wa.me/${waDigits}?text=${encodeURIComponent(buildWaMessage(l))}" target="_blank" rel="noopener noreferrer">WA</a>`;
+        })()}
+        <button class="btn-ghost edit-btn" data-id="${l.id}">Edit</button>
+        ${sessionRole==='employee' ? '' : `<button class="btn-danger del-btn" data-id="${l.id}">Del</button>`}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('.status').forEach(sel=>{
+    sel.addEventListener('change', async e=>{
+      const id = e.target.dataset.id;
+      const lead = leads.find(l=>l.id===id);
+      lead.status = e.target.value;
+      await saveLead(currentPeriod, lead);
+      if(!useFirebase) renderAll();
+    });
+  });
+  tbody.querySelectorAll('.techname-input').forEach(inp=>{
+    inp.addEventListener('change', async e=>{
+      const id = e.target.dataset.id;
+      const lead = leads.find(l=>l.id===id);
+      lead.techname = e.target.value.trim();
+      await saveLead(currentPeriod, lead);
+      if(!useFirebase) renderAll();
+    });
+  });
+async function computeEmployeeEarningForLead(lead){
+  if(lead.addedBy && lead.addedBy !== 'Owner'){
+    const employees = await getEmployees();
+    const emp = employees.find(e => e.name === lead.addedBy);
+    const commissionPct = emp ? (emp.commissionPercent != null ? emp.commissionPercent : 10) : 10;
+    return (lead.earning||0) * (commissionPct/100);
+  }
+  return 0;
+}
+
+  tbody.querySelectorAll('.jobvalue-input').forEach(inp=>{
+    inp.addEventListener('change', async e=>{
+      const id = e.target.dataset.id;
+      const lead = leads.find(l=>l.id===id);
+      lead.jobValue = parseFloat(e.target.value)||0;
+      lead.earning = lead.jobValue * ((lead.percentage||0)/100);
+      lead.employeeEarning = await computeEmployeeEarningForLead(lead);
+      await saveLead(currentPeriod, lead);
+      if(!useFirebase) renderAll();
+    });
+  });
+  tbody.querySelectorAll('.percentage-input').forEach(inp=>{
+    inp.addEventListener('change', async e=>{
+      const id = e.target.dataset.id;
+      const lead = leads.find(l=>l.id===id);
+      lead.percentage = parseFloat(e.target.value)||0;
+      lead.earning = (lead.jobValue||0) * (lead.percentage/100);
+      lead.employeeEarning = await computeEmployeeEarningForLead(lead);
+      await saveLead(currentPeriod, lead);
+      if(!useFirebase) renderAll();
+    });
+  });
+  tbody.querySelectorAll('.paid-select').forEach(sel=>{
+    sel.addEventListener('change', async e=>{
+      const id = e.target.dataset.id;
+      const lead = leads.find(l=>l.id===id);
+      lead.paid = e.target.value;
+      await saveLead(currentPeriod, lead);
+      if(!useFirebase) renderAll();
+    });
+  });
+  tbody.querySelectorAll('.edit-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const id = e.target.dataset.id;
+      const lead = leads.find(l=>l.id===id);
+      openModal(lead, id);
+    });
+  });
+  tbody.querySelectorAll('.del-btn').forEach(btn=>{
+    btn.addEventListener('click', async e=>{
+      const id = e.target.dataset.id;
+      if(!confirm('Delete this lead?')) return;
+      await deleteLeadDoc(currentPeriod, id);
+      if(!useFirebase) renderAll();
+    });
+  });
+
+  renderSummary(leads);
+  if(sessionRole !== 'employee'){
+    renderROI(leads);
+    await renderProfitChart();
+    await loadSettingsIntoInputs();
+  }
+}
+
+function renderSummary(leads){
+  const totalLeads = leads.length;
+  const bookings = leads.filter(l=> l.status==='Booked' || l.status==='Completed').length;
+  const completed = leads.filter(l=> l.status==='Completed').length;
+  // Only Completed jobs count towards actual earnings (booked jobs aren't paid yet)
+  const totalJobValue = leads.filter(l=> l.status==='Completed')
+                       .reduce((s,l)=> s+(l.jobValue||0), 0);
+  const totalEarned = leads.filter(l=> l.status==='Completed')
+                       .reduce((s,l)=> s+(l.earning||0), 0);
+  const received = leads.filter(l=> l.status==='Completed' && l.paid==='Yes')
+                       .reduce((s,l)=> s+(l.earning||0), 0);
+  const pending = totalEarned - received;
+  const employeeTotalEarned = leads.filter(l=> l.status==='Completed')
+                       .reduce((s,l)=> s+(l.employeeEarning||0), 0);
+  const cards = [
+    {label:'Total Leads', value: totalLeads, cls:''},
+    {label:'Total Bookings', value: bookings, cls:''},
+    {label:'Completed Jobs', value: completed, cls:'green'},
+  ];
+  if(sessionRole !== 'employee'){
+    cards.push(
+      {label:'Total Job Value (Completed)', value: '$'+totalJobValue.toFixed(2), cls:''},
+      {label:'Total I Earned', value: '$'+totalEarned.toFixed(2), cls:'orange'},
+      {label:'Payment Received', value: '$'+received.toFixed(2), cls:'green'},
+      {label:'Payment Pending', value: '$'+pending.toFixed(2), cls:'red'}
+    );
+  } else {
+    cards.push({label:'Your Total Earnings (This Month)', value: '$'+employeeTotalEarned.toFixed(2), cls:'orange'});
+  }
+  document.getElementById('summaryCards').innerHTML = cards.map(c=>`
+    <div class="card ${c.cls}">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value}</div>
+    </div>
+  `).join('');
+}
+
+let currentSettingsCache = {investment:'', otherCost:''};
+
+function renderROI(leads){
+  const investment = parseFloat(currentSettingsCache.investment) || 0;
+  const otherCost = parseFloat(currentSettingsCache.otherCost) || 0;
+
+  const earned = leads.filter(l=> l.status==='Completed')
+                       .reduce((s,l)=> s+(l.earning||0), 0);
+  const netProfit = earned - investment - otherCost;
+  const roi = investment > 0 ? (netProfit / investment) * 100 : 0;
+
+  const cards = [
+    {label:'Total I Earned (Revenue)', value:'$'+earned.toFixed(2), cls:'orange'},
+    {label:'Total Costs (Investment + Other)', value:'$'+(investment+otherCost).toFixed(2), cls:'red'},
+    {label:'Net Profit ($)', value:'$'+netProfit.toFixed(2), cls: netProfit>=0 ? 'green':'red'},
+    {label:'ROI (%)', value: (investment>0 ? roi.toFixed(1)+'%' : '—'), cls: roi>=0 ? 'green':'red'},
+  ];
+  document.getElementById('roiCards').innerHTML = cards.map(c=>`
+    <div class="card ${c.cls}">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value}</div>
+    </div>
+  `).join('');
+}
+
+async function loadSettingsIntoInputs(){
+  currentSettingsCache = await getSettings(currentPeriod);
+  document.getElementById('investmentInput').value = currentSettingsCache.investment || '';
+  document.getElementById('otherCostInput').value = currentSettingsCache.otherCost || '';
+}
+
+['investmentInput','otherCostInput'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', async ()=>{
+    const settings = {
+      investment: document.getElementById('investmentInput').value,
+      otherCost: document.getElementById('otherCostInput').value
+    };
+    currentSettingsCache = settings;
+    await saveSettingsDoc(currentPeriod, settings);
+    const leads = await getLeads(currentPeriod);
+    renderROI(leads);
+  });
+});
+
+// ---------------- LIVE LISTENERS (Firebase mode only) ----------------
+function attachLiveListeners(){
+  if(!useFirebase) return;
+  if(unsubLeads) unsubLeads();
+  if(unsubSettings) unsubSettings();
+  if(unsubPeriods) unsubPeriods();
+
+  unsubPeriods = fdb.collection('periods').onSnapshot(async ()=>{
+    await populatePeriodSelect();
+  });
+  unsubLeads = fdb.collection('periods').doc(currentPeriod).collection('leads')
+    .onSnapshot(()=>{ renderAll(); });
+  unsubSettings = fdb.collection('periods').doc(currentPeriod).collection('meta').doc('settings')
+    .onSnapshot(()=>{ renderAll(); });
+}
+
+// ---------------- EXPORT (EXCEL via SheetJS) ----------------
+function leadsToSheetData(leads){
+  if(sessionRole === 'employee'){
+    const headers = ['Name','State','City','Address','Category','Service','Coupon','Email','Phone','Zip','Date','Time','Status','Your Earning ($)'];
+    const rows = leads.map(l => [l.name,l.state,l.city,l.address,l.category,l.service,l.coupon,l.email,l.phone,l.zip,l.date,l.time,l.status,l.employeeEarning||0]);
+    return [headers, ...rows];
+  }
+  const headers = ['Name','State','City','Address','Category','Service','Coupon','Email','Phone','Zip','Date','Time','Tech Name','Tech Phone','Job Value ($)','My %','My Earning ($)','Employee Earning ($)','Status','Added By'];
+  const rows = leads.map(l => [l.name,l.state,l.city,l.address,l.category,l.service,l.coupon,l.email,l.phone,l.zip,l.date,l.time,l.techname||'',l.techphone||'',l.jobValue||0,l.percentage||0,l.earning||0,l.employeeEarning||0,l.status,l.addedBy||'Owner']);
+  return [headers, ...rows];
+}
+
+document.getElementById('exportPeriodBtn').addEventListener('click', async ()=>{
+  let leads = await getLeads(currentPeriod);
+  if(sessionRole === 'employee'){
+    leads = leads.filter(l => l.addedBy === sessionEmployeeName);
+  }
+  if(leads.length===0){ showToast('No leads to export', true); return; }
+  const periods = await getPeriods();
+  const p = periods.find(x=>x.id===currentPeriod);
+  const label = (p?.label || 'Month').replace(/[\/\\?%*:|"<>]/g,'-');
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(leadsToSheetData(leads));
+  XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+  XLSX.writeFile(wb, `HomeFixSolution_${label}.xlsx`);
+});
+
+document.getElementById('exportAllBtn').addEventListener('click', async ()=>{
+  const periods = await getPeriods();
+  if(periods.length===0){ showToast('No data to export', true); return; }
+  const wb = XLSX.utils.book_new();
+  for(const p of periods.sort((a,b)=> new Date(a.startDate)-new Date(b.startDate))){
+    const leads = await getLeads(p.id);
+    const sheetName = ('P'+(p.index||'')+'_'+fmtDate(new Date(p.startDate))).replace(/[\/\\?%*:|"<>\[\]]/g,'-').slice(0,31);
+    const ws = XLSX.utils.aoa_to_sheet(leadsToSheetData(leads));
+    XLSX.utils.book_append_sheet(wb, ws, sheetName || ('Month'+p.index));
+  }
+  XLSX.writeFile(wb, `HomeFixSolution_ALL_Months.xlsx`);
+});
+
+function escapeHtml(str){
+  if(str===undefined || str===null) return '';
+  return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function showToast(msg, isError){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isError ? 'var(--red)' : 'var(--green)';
+  t.style.display = 'block';
+  setTimeout(()=> t.style.display='none', 2600);
+}
+
+// ---------------- INIT ----------------
+async function startApp(){
+  await ensureFirstPeriod();
+  await populatePeriodSelect();
+  attachLiveListeners();
+  await renderAll();
+}
+
+(async function init(){
+  await initStorage();
+
+  // Employees use anonymous Firebase Auth (not email/password) — Firebase
+  // normally keeps this session across reloads on the same browser, but we
+  // re-check/re-establish it defensively here just in case.
+  if(localStorage.getItem('hfs_logged_in') === 'true' && localStorage.getItem('hfs_session_role') === 'employee'){
+    sessionRole = 'employee';
+    sessionEmployeeName = localStorage.getItem('hfs_session_employee_name');
+    if(useFirebase && fauth && !fauth.currentUser){
+      try{ await fauth.signInAnonymously(); }catch(e){ /* ignore — reads/writes will just fail if this doesn't work */ }
+    }
+    showApp();
+    await startApp();
+    return;
+  }
+
+  if(useFirebase && fauth){
+    fauth.onAuthStateChanged(user=>{
+      if(user){
+        sessionRole = 'owner';
+        sessionEmployeeName = null;
+        showApp();
+        startApp();
+      }
+      // if no user, login overlay just stays visible (already active by default)
+    });
+  } else {
+    if(localStorage.getItem('hfs_logged_in') === 'true'){
+      sessionRole = 'owner';
+      sessionEmployeeName = null;
+      showApp();
+    }
+    // Load the dashboard data in the background either way — it's hidden
+    // behind the login overlay until the person signs in.
+    await startApp();
+  }
+})();
+</script>
+</body>
+</html>
