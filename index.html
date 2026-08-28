@@ -24,7 +24,9 @@
     padding:24px; line-height:1.4;
   }
   .header-bar{background:var(--header-grad); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px; margin-bottom:14px; box-shadow:var(--shadow);}
-  .header{display:flex; align-items:center; gap:16px; margin-bottom:4px;}
+  .header{display:flex; align-items:center; gap:16px; margin-bottom:4px; flex-wrap:wrap;}
+  .brand-logo{height:48px; width:auto; max-width:150px; object-fit:contain; border-radius:8px; background:#fff; padding:4px;}
+  @media (max-width: 600px){ .brand-logo{height:36px;} }
   .header img{height:64px; width:auto;}
   .header h1{font-size:23px; margin:0; color:#fff; font-weight:800; letter-spacing:0.2px;}
   .sub{color:var(--muted); font-size:13px; margin-bottom:8px; margin-left:80px;}
@@ -147,6 +149,7 @@
 
 <div class="header-bar">
   <div class="header">
+    <img id="logoImg" src="" alt="Home Fix Solution Logo" class="brand-logo">
     <h1 id="mainTitle">Home Fix Solution — Leads Dashboard</h1>
   </div>
   <div class="sync-badge" id="syncStatus">⚪ Checking sync status...</div>
@@ -168,7 +171,6 @@
       <button class="btn-orange owner-only" id="exportAllBtn">⬇ Export ALL Months (Excel)</button>
       <button class="btn-danger owner-only" id="deletePeriodBtn">🗑 Delete This Month</button>
       <button class="btn-blue owner-only" id="employeesModalBtn">👥 Manage Employees</button>
-      <button class="btn-orange owner-only" id="secureOldDataBtn">🔒 Secure Old Data</button>
     </div>
   </div>
 </div>
@@ -331,6 +333,7 @@ Time: 10:30 AM"></textarea>
     <div class="modal-actions no-print">
       <button class="btn-ghost" id="invoicePrintBtn">🖨 Print</button>
       <button class="btn-blue" id="invoiceDownloadBtn">⬇ Download</button>
+      <button class="btn-green" id="markInvoicePaidBtn" style="display:none;">✅ Paid — Start Next Invoice</button>
     </div>
   </div>
 </div>
@@ -357,12 +360,31 @@ Time: 10:30 AM"></textarea>
         used for data sync). Once set, this login box automatically
         switches to real Firebase login — no other changes needed.
    ========================================================================= */
+const LOGO_BASE64 = "data:image/png;base64,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";
+document.getElementById('logoImg').src = LOGO_BASE64;
+
 const LOGIN_USERNAME = 'homefixsolution';
 const LOGIN_PASSWORD = 'anas1234567890';
 
 function showApp(){
   document.getElementById('loginOverlay').classList.remove('active');
   applyRoleVisibility();
+}
+
+// The very first time a REAL (password) account signs in and it is not
+// already registered as an employee, it self-registers as the owner.
+// Firestore rules only allow this exact write (a user marking themselves,
+// and only if they aren't an employee) — nobody else can grant themselves
+// owner access this way.
+async function claimOwnerIfEligible(){
+  if(!useFirebase || !fauth.currentUser) return;
+  const uid = fauth.currentUser.uid;
+  try{
+    const ownerDoc = await fdb.collection('owners').doc(uid).get();
+    if(!ownerDoc.exists){
+      await fdb.collection('owners').doc(uid).set({email: fauth.currentUser.email, createdAt: Date.now()});
+    }
+  }catch(e){ /* if this fails, isOwner() checks will fail too — surfaced elsewhere */ }
 }
 
 function withTimeout(promise, ms, label){
@@ -382,31 +404,35 @@ async function attemptLogin(){
   try{
     const looksLikeEmail = u.includes('@');
 
-    if(!looksLikeEmail){
-      // Employee usernames never contain "@", so only check this list
-      // when it's not an email — this also means owner logins skip this
-      // extra round-trip entirely and go straight to sign-in below.
-      const employees = await withTimeout(getEmployees(), 10000, 'Login');
-      const emp = employees.find(e=> e.username === u && e.password === p);
-      if(emp){
-        if(useFirebase && fauth && !fauth.currentUser){
-          try{ await withTimeout(fauth.signInAnonymously(), 10000, 'Login'); }catch(e){ /* rules will just block writes if this fails */ }
+    if(useFirebase && fauth){
+      if(!looksLikeEmail){
+        // Employee usernames (e.g. "emp482913") map to a real Firebase
+        // account under a fixed fake-email domain — this gives every
+        // employee a stable, permanent ID that database rules can check,
+        // while the person still just types the simple username we gave them.
+        const fakeEmail = u + '@homefixsolution.local';
+        await withTimeout(fauth.signInWithEmailAndPassword(fakeEmail, p), 12000, 'Sign-in');
+        const uid = fauth.currentUser.uid;
+        const empDoc = await withTimeout(fdb.collection('employees').doc(uid).get(), 10000, 'Login');
+        if(!empDoc.exists){
+          await fauth.signOut();
+          throw new Error('This account no longer has access. Contact your admin.');
         }
         sessionRole = 'employee';
-        sessionEmployeeName = emp.name;
+        sessionEmployeeUid = uid;
+        sessionEmployeeName = empDoc.data().name;
         localStorage.setItem('hfs_logged_in', 'true');
         localStorage.setItem('hfs_session_role', 'employee');
-        localStorage.setItem('hfs_session_employee_name', emp.name);
         showApp();
         return;
       }
-    }
 
-    // Owner login
-    if(useFirebase && fauth){
+      // Owner login (real email)
       await withTimeout(fauth.signInWithEmailAndPassword(u, p), 12000, 'Sign-in');
+      await claimOwnerIfEligible();
       sessionRole = 'owner';
       sessionEmployeeName = null;
+      sessionEmployeeUid = null;
       localStorage.setItem('hfs_session_role', 'owner');
       showApp();
       return;
@@ -444,11 +470,41 @@ function doLogout(){
   sessionEmployeeName = null;
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
+  // Clear any rendered data immediately so nothing lingers on screen
+  document.getElementById('leadsBody').innerHTML = '';
+  document.getElementById('summaryCards').innerHTML = '';
   document.getElementById('loginOverlay').classList.add('active');
 }
 document.getElementById('logoutBtn').addEventListener('click', ()=>{
   if(confirm('Log out?')) doLogout();
 });
+
+// Instantly kicks an employee out if the owner deletes their account while
+// they're still connected (not just hidden by the UI — they actually can't
+// read/write anything once signed out).
+function forceEmployeeLoggedOut(message){
+  if(useFirebase && fauth) fauth.signOut();
+  localStorage.removeItem('hfs_logged_in');
+  localStorage.removeItem('hfs_session_role');
+  localStorage.removeItem('hfs_session_employee_name');
+  sessionRole = null;
+  sessionEmployeeName = null;
+  document.getElementById('leadsBody').innerHTML = '';
+  document.getElementById('summaryCards').innerHTML = '';
+  document.getElementById('loginOverlay').classList.add('active');
+  document.getElementById('loginError').textContent = message || 'You have been logged out.';
+  document.getElementById('loginError').style.display = 'block';
+}
+let unsubMyEmployeeDoc = null;
+function watchMyEmployeeAccess(){
+  if(!useFirebase || sessionRole !== 'employee' || !sessionEmployeeUid) return;
+  if(unsubMyEmployeeDoc) unsubMyEmployeeDoc();
+  unsubMyEmployeeDoc = fdb.collection('employees').doc(sessionEmployeeUid).onSnapshot(doc=>{
+    if(!doc.exists){
+      forceEmployeeLoggedOut('Your access has been removed. Please contact your admin.');
+    }
+  }, err=>{ /* ignore — if this can't be read, revocation just won't be instant for this session */ });
+}
 
 document.getElementById('menuToggleBtn').addEventListener('click', ()=>{
   document.getElementById('menuDropdown').classList.toggle('open');
@@ -465,8 +521,18 @@ document.getElementById('menuDropdown').addEventListener('click', e=>{
   if(e.target.tagName === 'BUTTON') document.getElementById('menuDropdown').classList.remove('open');
 });
 
+// While typing in the leads table we skip re-rendering it (see renderAll)
+// so nothing gets interrupted mid-edit. Once focus actually leaves the
+// table, catch up with anything that changed in the meantime.
+document.getElementById('leadsBody').addEventListener('focusout', e=>{
+  setTimeout(()=>{
+    const tbody = document.getElementById('leadsBody');
+    if(!tbody.contains(document.activeElement)) renderAll();
+  }, 150);
+});
+
 document.getElementById('myInvoiceBtn').addEventListener('click', ()=>{
-  if(sessionRole === 'employee' && sessionEmployeeName) openInvoice(sessionEmployeeName);
+  if(sessionRole === 'employee' && sessionEmployeeName) openInvoice(sessionEmployeeName, sessionEmployeeUid);
 });
 
 function setupLoginUIForMode(){
@@ -511,24 +577,20 @@ async function renderEmployees(){
       <td>${escapeHtml(emp.name)}</td>
       <td>${escapeHtml(emp.username)}</td>
       <td>${escapeHtml(emp.password)}</td>
-      <td><input type="number" class="commission-pct-input" data-username="${escapeHtml(emp.username)}" value="${emp.commissionPercent!=null?emp.commissionPercent:10}" style="width:70px;"></td>
+      <td><input type="number" class="commission-pct-input" data-uid="${escapeHtml(emp.uid)}" value="${emp.commissionPercent!=null?emp.commissionPercent:10}" style="width:70px;"></td>
       <td class="row-actions">
         <button class="btn-ghost copy-emp-btn" data-username="${escapeHtml(emp.username)}" data-password="${escapeHtml(emp.password)}">Copy</button>
-        <button class="btn-blue view-invoice-btn" data-name="${escapeHtml(emp.name)}">Invoice</button>
-        <button class="btn-danger del-emp-btn" data-username="${escapeHtml(emp.username)}">Del</button>
+        <button class="btn-blue view-invoice-btn" data-uid="${escapeHtml(emp.uid)}" data-name="${escapeHtml(emp.name)}">Invoice</button>
+        <button class="btn-danger del-emp-btn" data-uid="${escapeHtml(emp.uid)}">Del</button>
       </td>
     `;
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll('.commission-pct-input').forEach(inp=>{
     inp.addEventListener('change', async e=>{
-      const username = e.target.dataset.username;
-      const employees = await getEmployees();
-      const emp = employees.find(x=>x.username===username);
-      if(!emp) return;
-      emp.commissionPercent = parseFloat(e.target.value) || 0;
-      await saveEmployeeDoc(emp);
-      showToast('Commission % updated for ' + emp.name);
+      const uid = e.target.dataset.uid;
+      await saveEmployeeCommission(uid, parseFloat(e.target.value) || 0);
+      showToast('Commission % updated');
     });
   });
   tbody.querySelectorAll('.copy-emp-btn').forEach(btn=>{
@@ -544,13 +606,13 @@ async function renderEmployees(){
   });
   tbody.querySelectorAll('.view-invoice-btn').forEach(btn=>{
     btn.addEventListener('click', e=>{
-      openInvoice(e.target.dataset.name);
+      openInvoice(e.target.dataset.name, e.target.dataset.uid);
     });
   });
   tbody.querySelectorAll('.del-emp-btn').forEach(btn=>{
     btn.addEventListener('click', async e=>{
       if(!confirm('Delete this employee login? They will no longer be able to sign in.')) return;
-      await deleteEmployeeDoc(e.target.dataset.username);
+      await deleteEmployeeDoc(e.target.dataset.uid);
       renderEmployees();
     });
   });
@@ -563,15 +625,25 @@ function randomString(len, chars){
 }
 
 // ---------------- INVOICES ----------------
-async function openInvoice(employeeName){
+async function openInvoice(employeeName, employeeUid){
   currentInvoiceEmployeeName = employeeName;
-  const periods = await getPeriods();
-  let jobs = [];
-  for(const p of periods){
-    const leads = await getLeads(p.id);
-    leads.filter(l => l.addedBy === employeeName && l.status === 'Completed' && (l.employeeEarning||0) > 0)
-         .forEach(l => jobs.push({...l, monthLabel: p.label || periodLabel(p.startDate)}));
+  currentInvoiceEmployeeUid = employeeUid || null;
+
+  let sinceTimestamp = 0;
+  if(employeeUid){
+    try{
+      const empDoc = await fdb.collection('employees').doc(employeeUid).get();
+      if(empDoc.exists) sinceTimestamp = empDoc.data().lastInvoicePaidAt || 0;
+    }catch(e){ /* if we can't read it, just show everything */ }
   }
+
+  const periods = await getPeriods();
+  const leadsByPeriod = await Promise.all(periods.map(p => getLeads(p.id)));
+  let jobs = [];
+  periods.forEach((p, i) => {
+    leadsByPeriod[i].filter(l => l.addedBy === employeeName && l.status === 'Completed' && (l.employeeEarning||0) > 0 && (l.createdAt||0) > sinceTimestamp)
+         .forEach(l => jobs.push({...l, monthLabel: p.label || periodLabel(p.startDate)}));
+  });
   jobs.sort((a,b)=> (a.createdAt||0)-(b.createdAt||0));
   const total = jobs.reduce((s,j)=> s+(j.employeeEarning||0), 0);
   const today = new Date().toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'});
@@ -587,18 +659,24 @@ async function openInvoice(employeeName){
         <div class="invoice-job-row invoice-job-earning"><span class="invoice-job-label">Earning</span><span>$${(j.employeeEarning||0).toFixed(2)}</span></div>
       </div>
     `).join('')
-    : `<div style="text-align:center; color:#888; padding:20px;">No completed jobs with earnings yet.</div>`;
+    : `<div style="text-align:center; color:#888; padding:20px;">No new completed jobs since the last payment.</div>`;
+
+  const sinceNote = sinceTimestamp
+    ? `<div style="color:#888; font-size:12px; margin-bottom:6px;">Showing jobs completed since last payment (${new Date(sinceTimestamp).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})})</div>`
+    : '';
 
   const html = `
     <div class="invoice-box">
       <h2>Home Fix Solution</h2>
       <div>Invoice for: <strong>${escapeHtml(employeeName)}</strong></div>
-      <div style="color:#555; font-size:13px; margin-bottom:10px;">Generated: ${today}</div>
+      <div style="color:#555; font-size:13px; margin-bottom:4px;">Generated: ${today}</div>
+      ${sinceNote}
       ${jobBlocksHtml}
       <div class="invoice-total">Total Earned: $${total.toFixed(2)}</div>
     </div>
   `;
   document.getElementById('invoiceContent').innerHTML = html;
+  document.getElementById('markInvoicePaidBtn').style.display = (sessionRole === 'owner' && employeeUid && jobs.length > 0) ? 'inline-block' : 'none';
   document.getElementById('invoiceModalOverlay').classList.add('active');
 }
 
@@ -630,20 +708,12 @@ document.getElementById('invoiceDownloadBtn').addEventListener('click', ()=>{
   URL.revokeObjectURL(url);
 });
 
-document.getElementById('secureOldDataBtn').addEventListener('click', async ()=>{
-  if(!useFirebase){ showToast('This is only needed when live sync is on.', true); return; }
-  if(!confirm('This re-saves every existing lead so job value, tech info, and payment details are moved to a protected, owner-only area that employees can never read — even with technical tools. It can take a minute for a lot of leads. Continue?')) return;
-  showToast('Securing old data... please wait');
-  let count = 0;
-  const periods = await getPeriods();
-  for(const p of periods){
-    const leads = await getLeads(p.id);
-    for(const lead of leads){
-      await saveLead(p.id, lead);
-      count++;
-    }
-  }
-  showToast(`Done — ${count} lead(s) secured.`);
+document.getElementById('markInvoicePaidBtn').addEventListener('click', async ()=>{
+  if(!currentInvoiceEmployeeUid) return;
+  if(!confirm(`Mark this invoice as paid for ${currentInvoiceEmployeeName}? The next invoice will only include new jobs completed from now on.`)) return;
+  await fdb.collection('employees').doc(currentInvoiceEmployeeUid).update({lastInvoicePaidAt: Date.now()});
+  showToast('Invoice marked as paid — next invoice starts fresh.');
+  document.getElementById('invoiceModalOverlay').classList.remove('active');
 });
 
 document.getElementById('employeesModalBtn').addEventListener('click', ()=>{
@@ -657,15 +727,17 @@ document.getElementById('closeEmployeesModal').addEventListener('click', ()=>{
 document.getElementById('genEmployeeBtn').addEventListener('click', async ()=>{
   const name = prompt('Employee name:');
   if(!name || !name.trim()) return;
-  const employees = await getEmployees();
-  let username;
-  do{
-    username = 'emp' + randomString(4, '0123456789');
-  } while(employees.some(e=>e.username===username));
-  const password = randomString(8, 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789');
-  await saveEmployeeDoc({name: name.trim(), username, password, createdAt: Date.now()});
-  await renderEmployees();
-  showToast('New login created for ' + name.trim());
+  const btn = document.getElementById('genEmployeeBtn');
+  btn.disabled = true; btn.textContent = 'Creating...';
+  try{
+    await generateEmployeeAccount(name.trim());
+    await renderEmployees();
+    showToast('New login created for ' + name.trim());
+  }catch(err){
+    showToast('Could not create login: ' + (err.message||'unknown error'), true);
+  } finally {
+    btn.disabled = false; btn.textContent = '+ Generate New Login';
+  }
 });
 
 /* =========================================================================
@@ -712,9 +784,12 @@ const FIREBASE_CONFIG = {
 let useFirebase = false;
 let fdb = null;
 let fauth = null;
+let secondaryAuth = null; // used only to create employee accounts without logging the owner out
 let sessionRole = null; // 'owner' | 'employee'
 let currentInvoiceEmployeeName = null;
+let currentInvoiceEmployeeUid = null;
 let sessionEmployeeName = null;
+let sessionEmployeeUid = null;
 let currentPeriod = null;
 let editingId = null;
 let currentSearchTerm = '';
@@ -731,6 +806,11 @@ async function initStorage(){
       firebase.initializeApp(FIREBASE_CONFIG);
       fdb = firebase.firestore();
       fauth = firebase.auth();
+      // Secondary app instance: lets the owner create a brand-new employee
+      // account (which normally auto-signs-in as that new user) WITHOUT
+      // disturbing the owner's own logged-in session.
+      const secondaryApp = firebase.initializeApp(FIREBASE_CONFIG, 'secondary');
+      secondaryAuth = secondaryApp.auth();
       useFirebase = true;
       badge.textContent = '🟢 Synced live — everyone signed in shares the same data';
     }catch(e){
@@ -787,17 +867,28 @@ const FINANCIAL_FIELDS = ['techname','techphone','jobValue','percentage','paid',
 
 async function getLeads(periodId){
   if(useFirebase){
-    const snap = await fdb.collection('periods').doc(periodId).collection('leads').get();
-    const leads = [];
-    for(const d of snap.docs){
-      let lead = {id: d.id, ...d.data()};
-      if(sessionRole === 'owner'){
-        try{
-          const finDoc = await fdb.collection('periods').doc(periodId).collection('leads').doc(d.id).collection('financials').doc('data').get();
-          if(finDoc.exists) lead = {...lead, ...finDoc.data()};
-        }catch(e){ /* employee session or offline — ignore, base fields still work */ }
-      }
-      leads.push(lead);
+    let query = fdb.collection('periods').doc(periodId).collection('leads');
+    if(sessionRole === 'employee'){
+      // This filter is required — the database rules only allow an employee
+      // to list leads when the query itself is scoped to their own UID.
+      query = query.where('employeeUid', '==', sessionEmployeeUid);
+    }
+    const snap = await query.get();
+    let leads = snap.docs.map(d => ({id: d.id, ...d.data()}));
+
+    if(sessionRole === 'owner' && leads.length){
+      // Fetch every lead's financials IN PARALLEL instead of one-by-one —
+      // sequential awaits here were the root cause of both the slowness
+      // and fields appearing to "disappear" (a slow re-render mid-typing
+      // was wiping out in-progress edits before it finished loading).
+      const finResults = await Promise.all(leads.map(l =>
+        fdb.collection('periods').doc(periodId).collection('leads').doc(l.id).collection('financials').doc('data').get()
+          .catch(()=>null)
+      ));
+      leads = leads.map((lead, i) => {
+        const finDoc = finResults[i];
+        return (finDoc && finDoc.exists) ? {...lead, ...finDoc.data()} : lead;
+      });
     }
     return leads;
   }
@@ -808,15 +899,19 @@ async function saveLead(periodId, lead){
     const publicFields = {...lead};
     const financialFields = {};
     FINANCIAL_FIELDS.forEach(f=>{ financialFields[f] = lead[f]; delete publicFields[f]; });
-    // Write financials FIRST — the public doc write below is what triggers
-    // the live listener/re-render, so by the time that happens the
-    // financials subdoc must already be fully saved (otherwise the
-    // re-render can briefly read it as missing and flicker/blank out
-    // Job Value, Tech Name, My Earning etc).
+
+    const leadRef = fdb.collection('periods').doc(periodId).collection('leads').doc(lead.id);
+    const finRef = leadRef.collection('financials').doc('data');
+
+    // Atomic batch: both documents commit together in one step, so any
+    // listener reacting to this change never sees a half-saved state
+    // (this is what was causing tech name/job value to flicker/disappear).
+    const batch = fdb.batch();
+    batch.set(leadRef, publicFields);
     if(sessionRole === 'owner'){
-      await fdb.collection('periods').doc(periodId).collection('leads').doc(lead.id).collection('financials').doc('data').set(financialFields);
+      batch.set(finRef, financialFields);
     }
-    await fdb.collection('periods').doc(periodId).collection('leads').doc(lead.id).set(publicFields);
+    await batch.commit();
   } else {
     let leads = localGet('hfs_leads_'+periodId, []);
     const i = leads.findIndex(l=>l.id===lead.id);
@@ -826,10 +921,11 @@ async function saveLead(periodId, lead){
 }
 async function deleteLeadDoc(periodId, leadId){
   if(useFirebase){
-    try{
-      await fdb.collection('periods').doc(periodId).collection('leads').doc(leadId).collection('financials').doc('data').delete();
-    }catch(e){ /* ignore — non-owner can't delete this anyway, rules protect it */ }
-    await fdb.collection('periods').doc(periodId).collection('leads').doc(leadId).delete();
+    const leadRef = fdb.collection('periods').doc(periodId).collection('leads').doc(leadId);
+    const batch = fdb.batch();
+    batch.delete(leadRef.collection('financials').doc('data'));
+    batch.delete(leadRef);
+    await batch.commit();
   } else {
     let leads = localGet('hfs_leads_'+periodId, []).filter(l=>l.id!==leadId);
     localSet('hfs_leads_'+periodId, leads);
@@ -854,26 +950,59 @@ async function saveSettingsDoc(periodId, settings){
 async function getEmployees(){
   if(useFirebase){
     const snap = await fdb.collection('employees').get();
-    return snap.docs.map(d=>({username:d.id, ...d.data()}));
+    return snap.docs.map(d=>({uid:d.id, ...d.data()}));
   }
   return localGet('hfs_employees', []);
 }
-async function saveEmployeeDoc(emp){
+async function saveEmployeeCommission(uid, commissionPercent){
   if(useFirebase){
-    await fdb.collection('employees').doc(emp.username).set(emp);
+    await fdb.collection('employees').doc(uid).update({commissionPercent});
   } else {
     let list = localGet('hfs_employees', []);
-    const i = list.findIndex(e=>e.username===emp.username);
-    if(i>=0) list[i]=emp; else list.push(emp);
+    const emp = list.find(e=>e.uid===uid);
+    if(emp){ emp.commissionPercent = commissionPercent; localSet('hfs_employees', list); }
+  }
+}
+async function deleteEmployeeDoc(uid){
+  if(useFirebase){
+    await fdb.collection('employees').doc(uid).delete();
+  } else {
+    let list = localGet('hfs_employees', []).filter(e=>e.uid!==uid);
     localSet('hfs_employees', list);
   }
 }
-async function deleteEmployeeDoc(username){
+
+// Creates a brand-new, REAL employee account with its own stable ID —
+// via a secondary Firebase app instance so the owner's own session is
+// never disturbed by the sign-in that normally happens on account creation.
+async function generateEmployeeAccount(name){
   if(useFirebase){
-    await fdb.collection('employees').doc(username).delete();
+    let attempt = 0;
+    while(true){
+      const username = 'emp' + randomString(6, '0123456789');
+      const fakeEmail = username + '@homefixsolution.local';
+      const password = randomString(10, 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789');
+      try{
+        const cred = await secondaryAuth.createUserWithEmailAndPassword(fakeEmail, password);
+        const uid = cred.user.uid;
+        await secondaryAuth.signOut();
+        const empDoc = {name, username, password, commissionPercent: 10, createdAt: Date.now()};
+        await fdb.collection('employees').doc(uid).set(empDoc);
+        return {uid, ...empDoc};
+      }catch(err){
+        if(err.code === 'auth/email-already-in-use' && attempt < 5){ attempt++; continue; }
+        throw err;
+      }
+    }
   } else {
-    let list = localGet('hfs_employees', []).filter(e=>e.username!==username);
+    let list = localGet('hfs_employees', []);
+    let username;
+    do{ username = 'emp' + randomString(4, '0123456789'); } while(list.some(e=>e.username===username));
+    const password = randomString(8, 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789');
+    const emp = {uid: username, username, password, name, commissionPercent: 10, createdAt: Date.now()};
+    list.push(emp);
     localSet('hfs_employees', list);
+    return emp;
   }
 }
 
@@ -1161,7 +1290,8 @@ document.getElementById('modalSave').addEventListener('click', async ()=>{
     time: document.getElementById('f_time').value.trim(),
     status: isEmployeeSaving ? (editingOriginalData ? editingOriginalData.status : 'New') : document.getElementById('f_status').value,
     createdAt: editingId ? (editingOriginalData && editingOriginalData.createdAt ? editingOriginalData.createdAt : Date.now()) : Date.now(),
-    addedBy: document.getElementById('f_addedby').value.trim() || (sessionRole==='employee' ? sessionEmployeeName : 'Owner')
+    addedBy: document.getElementById('f_addedby').value.trim() || (sessionRole==='employee' ? sessionEmployeeName : 'Owner'),
+    employeeUid: editingId ? (editingOriginalData ? (editingOriginalData.employeeUid || null) : null) : (sessionRole==='employee' ? sessionEmployeeUid : null)
   };
 
   if(isEmployeeSaving){
@@ -1202,11 +1332,8 @@ document.getElementById('modalSave').addEventListener('click', async ()=>{
 // ---------------- RENDER ----------------
 async function renderProfitChart(){
   const periods = await getPeriods();
-  let allLeads = [];
-  for(const p of periods){
-    const leads = await getLeads(p.id);
-    allLeads = allLeads.concat(leads);
-  }
+  const leadsByPeriod = await Promise.all(periods.map(p => getLeads(p.id)));
+  const allLeads = leadsByPeriod.flat();
   const completed = allLeads.filter(l=> l.status==='Completed' && l.createdAt);
 
   const now = new Date();
@@ -1259,10 +1386,15 @@ async function renderAll(){
   document.getElementById('periodLabel').textContent = p ? (p.label || periodLabel(p.startDate)) : '';
 
   let leads = await getLeads(currentPeriod);
-  if(sessionRole === 'employee'){
-    leads = leads.filter(l => l.addedBy === sessionEmployeeName);
-  }
   leads.sort((a,b)=> (a._order||0)-(b._order||0));
+
+  // Cache commission % per employee once so inline edits can calculate
+  // instantly (while typing) without a network round-trip per keystroke.
+  let empCommissionMap = {};
+  if(sessionRole === 'owner'){
+    const employeesForCalc = await getEmployees();
+    employeesForCalc.forEach(e => { empCommissionMap[e.name] = (e.commissionPercent != null ? e.commissionPercent : 10); });
+  }
 
   const term = (currentSearchTerm||'').trim().toLowerCase();
   const displayLeads = term
@@ -1270,6 +1402,9 @@ async function renderAll(){
     : leads;
 
   const tbody = document.getElementById('leadsBody');
+  const activeInTable = tbody.contains(document.activeElement) &&
+    document.activeElement.matches('input, select, textarea');
+  if(!activeInTable){
   tbody.innerHTML = '';
   document.getElementById('emptyMsg').style.display = displayLeads.length ? 'none' : 'block';
   if(term && displayLeads.length===0){
@@ -1297,8 +1432,8 @@ async function renderAll(){
       <td class="owner-only"><input class="techname-input" data-id="${l.id}" value="${escapeHtml(l.techname||'')}"></td>
       <td class="owner-only"><input class="jobvalue-input" type="number" data-id="${l.id}" value="${l.jobValue||0}"></td>
       <td class="owner-only"><input class="percentage-input" type="number" data-id="${l.id}" value="${l.percentage||0}"></td>
-      <td class="earning-cell owner-only">$${(l.earning||0).toFixed(2)}</td>
-      <td class="earning-cell">$${(l.employeeEarning||0).toFixed(2)}</td>
+      <td class="earning-cell owner-only" id="earning-${l.id}">$${(l.earning||0).toFixed(2)}</td>
+      <td class="earning-cell" id="empEarning-${l.id}">$${(l.employeeEarning||0).toFixed(2)}</td>
       <td class="owner-only"><select class="paid-select" data-id="${l.id}">
           <option value="No" ${(l.paid==='No'||!l.paid)?'selected':''}>Pending</option>
           <option value="Yes" ${l.paid==='Yes'?'selected':''}>Received</option>
@@ -1355,7 +1490,22 @@ async function computeEmployeeEarningForLead(lead){
   return 0;
 }
 
+  function instantRecalc(id){
+    const lead = leads.find(l=>l.id===id);
+    if(!lead) return;
+    const jv = parseFloat(document.querySelector(`.jobvalue-input[data-id="${id}"]`)?.value) || 0;
+    const pct = parseFloat(document.querySelector(`.percentage-input[data-id="${id}"]`)?.value) || 0;
+    const earning = jv * (pct/100);
+    const commissionPct = (lead.addedBy && lead.addedBy !== 'Owner') ? (empCommissionMap[lead.addedBy] != null ? empCommissionMap[lead.addedBy] : 10) : 0;
+    const employeeEarning = (lead.addedBy && lead.addedBy !== 'Owner') ? earning * (commissionPct/100) : 0;
+    const earningCell = document.getElementById('earning-'+id);
+    const empEarningCell = document.getElementById('empEarning-'+id);
+    if(earningCell) earningCell.textContent = '$'+earning.toFixed(2);
+    if(empEarningCell) empEarningCell.textContent = '$'+employeeEarning.toFixed(2);
+  }
+
   tbody.querySelectorAll('.jobvalue-input').forEach(inp=>{
+    inp.addEventListener('input', e=> instantRecalc(e.target.dataset.id));
     inp.addEventListener('change', async e=>{
       const id = e.target.dataset.id;
       const lead = leads.find(l=>l.id===id);
@@ -1367,6 +1517,7 @@ async function computeEmployeeEarningForLead(lead){
     });
   });
   tbody.querySelectorAll('.percentage-input').forEach(inp=>{
+    inp.addEventListener('input', e=> instantRecalc(e.target.dataset.id));
     inp.addEventListener('change', async e=>{
       const id = e.target.dataset.id;
       const lead = leads.find(l=>l.id===id);
@@ -1401,7 +1552,9 @@ async function computeEmployeeEarningForLead(lead){
       if(!useFirebase) renderAll();
     });
   });
+  } // end of !activeInTable guard
 
+  lastRenderedLeads = leads;
   renderSummary(leads);
   if(sessionRole !== 'employee'){
     renderROI(leads);
@@ -1448,6 +1601,7 @@ function renderSummary(leads){
 }
 
 let currentSettingsCache = {investment:'', otherCost:''};
+let lastRenderedLeads = [];
 
 function renderROI(leads){
   const investment = parseFloat(currentSettingsCache.investment) || 0;
@@ -1474,20 +1628,32 @@ function renderROI(leads){
 
 async function loadSettingsIntoInputs(){
   currentSettingsCache = await getSettings(currentPeriod);
-  document.getElementById('investmentInput').value = currentSettingsCache.investment || '';
-  document.getElementById('otherCostInput').value = currentSettingsCache.otherCost || '';
+  const invEl = document.getElementById('investmentInput');
+  const costEl = document.getElementById('otherCostInput');
+  // Don't clobber a field the person is actively typing into.
+  if(document.activeElement !== invEl) invEl.value = currentSettingsCache.investment || '';
+  if(document.activeElement !== costEl) costEl.value = currentSettingsCache.otherCost || '';
 }
 
 ['investmentInput','otherCostInput'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', async ()=>{
+  const el = document.getElementById(id);
+  // Instant, local-only recalculation while typing — no network call, so
+  // nothing can interrupt/reset what's being typed.
+  el.addEventListener('input', ()=>{
+    currentSettingsCache = {
+      investment: document.getElementById('investmentInput').value,
+      otherCost: document.getElementById('otherCostInput').value
+    };
+    renderROI(lastRenderedLeads);
+  });
+  // Actual save only happens once, when the person leaves the field.
+  el.addEventListener('change', async ()=>{
     const settings = {
       investment: document.getElementById('investmentInput').value,
       otherCost: document.getElementById('otherCostInput').value
     };
     currentSettingsCache = settings;
     await saveSettingsDoc(currentPeriod, settings);
-    const leads = await getLeads(currentPeriod);
-    renderROI(leads);
   });
 });
 
@@ -1505,6 +1671,7 @@ function attachLiveListeners(){
     .onSnapshot(()=>{ renderAll(); });
   unsubSettings = fdb.collection('periods').doc(currentPeriod).collection('meta').doc('settings')
     .onSnapshot(()=>{ renderAll(); });
+  watchMyEmployeeAccess();
 }
 
 // ---------------- EXPORT (EXCEL via SheetJS) ----------------
@@ -1521,9 +1688,6 @@ function leadsToSheetData(leads){
 
 document.getElementById('exportPeriodBtn').addEventListener('click', async ()=>{
   let leads = await getLeads(currentPeriod);
-  if(sessionRole === 'employee'){
-    leads = leads.filter(l => l.addedBy === sessionEmployeeName);
-  }
   if(leads.length===0){ showToast('No leads to export', true); return; }
   const periods = await getPeriods();
   const p = periods.find(x=>x.id===currentPeriod);
@@ -1538,12 +1702,14 @@ document.getElementById('exportAllBtn').addEventListener('click', async ()=>{
   const periods = await getPeriods();
   if(periods.length===0){ showToast('No data to export', true); return; }
   const wb = XLSX.utils.book_new();
-  for(const p of periods.sort((a,b)=> new Date(a.startDate)-new Date(b.startDate))){
-    const leads = await getLeads(p.id);
+  const sortedPeriods = periods.sort((a,b)=> new Date(a.startDate)-new Date(b.startDate));
+  const leadsByPeriod = await Promise.all(sortedPeriods.map(p => getLeads(p.id)));
+  sortedPeriods.forEach((p, i) => {
+    const leads = leadsByPeriod[i];
     const sheetName = ('P'+(p.index||'')+'_'+fmtDate(new Date(p.startDate))).replace(/[\/\\?%*:|"<>\[\]]/g,'-').slice(0,31);
     const ws = XLSX.utils.aoa_to_sheet(leadsToSheetData(leads));
     XLSX.utils.book_append_sheet(wb, ws, sheetName || ('Month'+p.index));
-  }
+  });
   XLSX.writeFile(wb, `HomeFixSolution_ALL_Months.xlsx`);
 });
 
@@ -1570,34 +1736,56 @@ async function startApp(){
 (async function init(){
   await initStorage();
 
-  // Employees use anonymous Firebase Auth (not email/password) — Firebase
-  // normally keeps this session across reloads on the same browser, but we
-  // re-check/re-establish it defensively here just in case.
-  if(localStorage.getItem('hfs_logged_in') === 'true' && localStorage.getItem('hfs_session_role') === 'employee'){
-    sessionRole = 'employee';
-    sessionEmployeeName = localStorage.getItem('hfs_session_employee_name');
-    if(useFirebase && fauth && !fauth.currentUser){
-      try{ await fauth.signInAnonymously(); }catch(e){ /* ignore — reads/writes will just fail if this doesn't work */ }
-    }
-    showApp();
-    await startApp();
-    return;
-  }
-
   if(useFirebase && fauth){
-    fauth.onAuthStateChanged(user=>{
+    let appStarted = false;
+    fauth.onAuthStateChanged(async user=>{
       if(user){
-        sessionRole = 'owner';
-        sessionEmployeeName = null;
+        // Both Owner and Employee now sign in with real email/password —
+        // so we determine which one this is by checking which record
+        // exists for their UID (rules only let the right doc exist/be
+        // readable for each case).
+        let resolvedRole = null;
+        let resolvedEmployeeName = null;
+        try{
+          const empDoc = await fdb.collection('employees').doc(user.uid).get();
+          if(empDoc.exists){
+            resolvedRole = 'employee';
+            resolvedEmployeeName = empDoc.data().name;
+          } else {
+            await claimOwnerIfEligible();
+            const ownerDoc = await fdb.collection('owners').doc(user.uid).get();
+            if(ownerDoc.exists) resolvedRole = 'owner';
+          }
+        }catch(e){ /* fall through — resolvedRole stays null, treated as logged out below */ }
+
+        if(!resolvedRole){
+          // Removed employee, or a real account with no valid role record.
+          forceEmployeeLoggedOut('Your access has been removed or could not be verified. Please contact your admin.');
+          return;
+        }
+
+        sessionRole = resolvedRole;
+        sessionEmployeeUid = resolvedRole === 'employee' ? user.uid : null;
+        sessionEmployeeName = resolvedEmployeeName;
+        localStorage.setItem('hfs_logged_in', 'true');
+        localStorage.setItem('hfs_session_role', resolvedRole);
+
         showApp();
-        startApp();
+        if(!appStarted){ appStarted = true; await startApp(); }
+        else { attachLiveListeners(); renderAll(); }
+      } else {
+        sessionRole = null;
+        sessionEmployeeName = null;
+        sessionEmployeeUid = null;
+        localStorage.removeItem('hfs_logged_in');
+        localStorage.removeItem('hfs_session_role');
+        document.getElementById('loginOverlay').classList.add('active');
       }
-      // if no user, login overlay just stays visible (already active by default)
     });
   } else {
     if(localStorage.getItem('hfs_logged_in') === 'true'){
-      sessionRole = 'owner';
-      sessionEmployeeName = null;
+      sessionRole = localStorage.getItem('hfs_session_role') || 'owner';
+      sessionEmployeeName = localStorage.getItem('hfs_session_employee_name');
       showApp();
     }
     // Load the dashboard data in the background either way — it's hidden
